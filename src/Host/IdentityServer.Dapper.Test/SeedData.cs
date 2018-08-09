@@ -33,7 +33,7 @@ namespace IdentityServer.Dapper.Test
                 Console.WriteLine("Clients being populated");
                 foreach (var client in Clients.Get().ToList())
                 {
-                    if(clientProvider.FindClientById(client.ClientId)==null)
+                    if (clientProvider.FindClientById(client.ClientId) == null)
                     {
                         clientProvider.Add(client);
                     }
@@ -51,7 +51,10 @@ namespace IdentityServer.Dapper.Test
                 Console.WriteLine("IdentityResources being populated");
                 foreach (var resource in Resources.GetIdentityResources().ToList())
                 {
-                    //identityResourceProvider.
+                    if(identityResourceProvider.FindIdentityResourcesByName(resource.Name)==null)
+                    {
+                        identityResourceProvider.Add(resource);
+                    }
                 }
             }
             else
@@ -69,7 +72,10 @@ namespace IdentityServer.Dapper.Test
                 Console.WriteLine("ApiResources being populated");
                 foreach (var resource in Resources.GetApiResources().ToList())
                 {
-                    //apiResourceProvider.
+                    if(apiResourceProvider.FindApiResource(resource.Name)==null)
+                    {
+                        apiResourceProvider.Add(resource);
+                    }
                 }
             }
             else

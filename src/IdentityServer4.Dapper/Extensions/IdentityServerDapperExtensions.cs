@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace IdentityServer4.Dapper.Extensions
 {
@@ -25,8 +26,8 @@ namespace IdentityServer4.Dapper.Extensions
         public static IIdentityServerBuilder AddConfigurationStore(this IIdentityServerBuilder builder, Action<ConfigurationStoreOptions> storeOptionsAction = null)
         {
             var options = new ConfigurationStoreOptions();
-            builder.Services.AddSingleton(options);
             storeOptionsAction?.Invoke(options);
+            builder.Services.AddSingleton(options);
 
             builder.Services.AddTransient<Interfaces.IClientProvider, DefaultProviders.DefaultClientProvider>();
             builder.Services.AddTransient<Interfaces.IApiResourceProvider, DefaultProviders.DefaultApiResourceProvider>();
@@ -53,10 +54,11 @@ namespace IdentityServer4.Dapper.Extensions
             builder.Services.AddTransient<Interfaces.IPersistedGrantStoreClanup, DefaultProviders.DefaultPersistedGrantProvider>();
 
             var storeOptions = new OperationalStoreOptions();
-            builder.Services.AddSingleton(storeOptions);
             storeOptionsAction?.Invoke(storeOptions);
+            builder.Services.AddSingleton(storeOptions);
 
-            builder.Services.AddTransient<IPersistedGrantStore, PersistedGrantStore>();
+            builder.Services.RemoveAll<IPersistedGrantStore>();
+            builder.Services.AddSingleton<IPersistedGrantStore, PersistedGrantStore>();
 
             return builder;
         }

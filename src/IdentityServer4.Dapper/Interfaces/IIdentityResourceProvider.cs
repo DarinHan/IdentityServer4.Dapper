@@ -9,5 +9,7 @@ namespace IdentityServer4.Dapper.Interfaces
     {
         IEnumerable<IdentityResource> FindIdentityResourcesByScope(IEnumerable<string> scopeNames);
         IEnumerable<IdentityResource> FindIdentityResourcesAll();
+        void Add(IdentityResource identityResource);
+        IdentityResource FindIdentityResourcesByName(string name);
     }
 }

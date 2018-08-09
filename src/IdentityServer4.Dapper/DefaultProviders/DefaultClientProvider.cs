@@ -9,18 +9,35 @@ using System.Data;
 
 namespace IdentityServer4.Dapper.DefaultProviders
 {
+    /// <summary>
+    /// default client provider, which provide the query method and add or update
+    /// </summary>
     public class DefaultClientProvider : IClientProvider
     {
+        /// <summary>
+        /// dbconfig options should be configed in each instance of db
+        /// </summary>
         private DBProviderOptions _options;
         private readonly ILogger<DefaultClientProvider> _logger;
 
+        /// <summary>
+        /// default constructor
+        /// </summary>
+        /// <param name="dBProviderOptions">db config options</param>
+        /// <param name="logger">the logger</param>
         public DefaultClientProvider(DBProviderOptions dBProviderOptions, ILogger<DefaultClientProvider> logger)
         {
             this._options = dBProviderOptions ?? throw new ArgumentNullException(nameof(dBProviderOptions));
             this._logger = logger;
         }
 
-        public Client FindClientById(string clientid)
+        /// <summary>
+        /// find client by client id.
+        /// <para>make this method virtual for override in subclass.</para>
+        /// </summary>
+        /// <param name="clientid"></param>
+        /// <returns></returns>
+        public virtual Client FindClientById(string clientid)
         {
             if (string.IsNullOrWhiteSpace(clientid))
             {
@@ -33,7 +50,20 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 var client = connection.QueryFirstOrDefault<Entities.Client>("select * from Clients where ClientId = @ClientId", new { ClientId = clientid }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                 if (client != null)
                 {
+                    //do not use the mutiquery in case of some db can not return muti sets
+                    //if you want to redurce the time cost,please recode in your owner class which should inherit from IClientProvider or this
                     var granttypes = connection.Query<Entities.ClientGrantType>("select * from ClientGrantTypes where  ClientId = @ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                    var redirecturls = connection.Query<Entities.ClientRedirectUri>("select * from ClientRedirectUris where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                    var postlogoutredirecturis = connection.Query<Entities.ClientPostLogoutRedirectUri>("select * from ClientPostLoutRedirectUris where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                    var allowedscopes = connection.Query<Entities.ClientScope>("select * from ClientScopes where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                    var secrets = connection.Query<Entities.ClientSecret>("select * from ClientSecrets where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                    var claims = connection.Query<Entities.ClientClaim>("select * from ClientClaims where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                    var iprestrictions = connection.Query<Entities.ClientIdPRestriction>("select * from ClientIdPRestrictions where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                    var corsOrigins = connection.Query<Entities.ClientCorsOrigin>("select * from ClientCorsOrigins where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                    var properties = connection.Query<Entities.ClientProperty>("select * from ClientProperties where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                    //do not need to close,because it has been closed in Connection.Query
+                    //connection.Close();
+
                     if (granttypes != null)
                     {
                         foreach (var item in granttypes)
@@ -42,8 +72,6 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         }
                         client.AllowedGrantTypes = granttypes.AsList();
                     }
-
-                    var redirecturls = connection.Query<Entities.ClientRedirectUri>("select * from ClientRedirectUris where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                     if (redirecturls != null)
                     {
                         foreach (var item in redirecturls)
@@ -52,7 +80,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         }
                         client.RedirectUris = redirecturls.AsList();
                     }
-                    var postlogoutredirecturis = connection.Query<Entities.ClientPostLogoutRedirectUri>("select * from ClientPostLoutRedirectUris where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+
                     if (postlogoutredirecturis != null)
                     {
                         foreach (var item in postlogoutredirecturis)
@@ -61,7 +89,6 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         }
                         client.PostLogoutRedirectUris = postlogoutredirecturis.AsList();
                     }
-                    var allowedscopes = connection.Query<Entities.ClientScope>("select * from ClientScopes where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                     if (allowedscopes != null)
                     {
                         foreach (var item in allowedscopes)
@@ -70,7 +97,6 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         }
                         client.AllowedScopes = allowedscopes.AsList();
                     }
-                    var secrets = connection.Query<Entities.ClientSecret>("select * from ClientSecrets where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                     if (secrets != null)
                     {
                         foreach (var item in secrets)
@@ -79,7 +105,6 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         }
                         client.ClientSecrets = secrets.AsList();
                     }
-                    var claims = connection.Query<Entities.ClientClaim>("select * from ClientClaims where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                     if (claims != null)
                     {
                         foreach (var item in claims)
@@ -88,7 +113,6 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         }
                         client.Claims = claims.AsList();
                     }
-                    var iprestrictions = connection.Query<Entities.ClientIdPRestriction>("select * from ClientIdPRestrictions where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                     if (iprestrictions != null)
                     {
                         foreach (var item in iprestrictions)
@@ -97,7 +121,6 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         }
                         client.IdentityProviderRestrictions = iprestrictions.AsList();
                     }
-                    var corsOrigins = connection.Query<Entities.ClientCorsOrigin>("select * from ClientCorsOrigins where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                     if (corsOrigins != null)
                     {
                         foreach (var item in corsOrigins)
@@ -107,7 +130,6 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         client.AllowedCorsOrigins = corsOrigins.AsList();
                     }
 
-                    var properties = connection.Query<Entities.ClientProperty>("select * from ClientProperties where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                     if (properties != null)
                     {
                         foreach (var item in properties)
@@ -122,6 +144,11 @@ namespace IdentityServer4.Dapper.DefaultProviders
             }
         }
 
+        /// <summary>
+        /// add the client to db.
+        /// <para>clientid will be checked as unique key.</para> 
+        /// </summary>
+        /// <param name="client"></param>
         public void Add(Client client)
         {
             var dbclient = FindClientById(client.ClientId);

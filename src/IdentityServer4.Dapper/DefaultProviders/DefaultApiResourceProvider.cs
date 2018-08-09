@@ -126,5 +126,103 @@ namespace IdentityServer4.Dapper.DefaultProviders
             var lstall = FindApiResourcesAll();
             return lstall.Where(c => c.Scopes.Where(s => names.Contains(s.Name)).Any()).AsEnumerable();
         }
+
+        public void Add(ApiResource apiResource)
+        {
+            var dbapiResource = FindApiResource(apiResource.Name);
+            if (dbapiResource != null)
+            {
+                throw new InvalidOperationException($"you can not add an existed ApiResource,Name={apiResource.Name}.");
+            }
+
+            var entity = apiResource.ToEntity();
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                con.Open();
+                using (var t = con.BeginTransaction())
+                {
+                    try
+                    {
+                        string left = _options.ColumnProtect["left"];
+                        string right = _options.ColumnProtect["right"];
+
+                        var ret = con.Execute($"insert into ApiResources ({left}Description{right},DisplayName,Enabled,{left}Name{right}) values (@Description,@DisplayName,@Enabled,@Name)", new
+                        {
+                            entity.Description,
+                            entity.DisplayName,
+                            entity.Enabled,
+                            entity.Name
+                        }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                        if (ret != 1)
+                        {
+                            throw new Exception($"execute insert error,return values is {ret}");
+                        }
+
+                        var apiid = con.ExecuteScalar<int>(_options.GetLastInsertID, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+
+                        if (entity.UserClaims != null && entity.UserClaims.Count() > 0)
+                        {
+                            foreach (var item in entity.UserClaims)
+                            {
+                                ret = con.Execute($"insert into ApiClaims (ApiResourceId,{left}Type{right}) values (@ApiResourceId,@Type)", new
+                                {
+                                    ApiResourceId = apiid,
+                                    item.Type
+                                }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                                if (ret != 1)
+                                {
+                                    throw new Exception($"execute insert error,return values is {ret}");
+                                }
+                            }
+                        }
+                        if (entity.Secrets != null && entity.Secrets.Count() > 0)
+                        {
+                            foreach (var item in entity.Secrets)
+                            {
+                                ret = con.Execute($"insert into ApiSecrets (ApiResourceId,{left}Description{right},Expiration,{left}Type{right},{left}Value{right}) values (@ApiResourceId,@Description,@Expiration,@Type,@Value)", new
+                                {
+                                    ApiResourceId = apiid,
+                                    item.Description,
+                                    item.Expiration,
+                                    item.Type,
+                                    item.Value
+                                }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                                if (ret != 1)
+                                {
+                                    throw new Exception($"execute insert error,return values is {ret}");
+                                }
+                            }
+                        }
+                        if (entity.Scopes != null && entity.Scopes.Count() > 0)
+                        {
+                            foreach (var item in entity.Scopes)
+                            {
+                                ret = con.Execute($"insert into ApiScopes (ApiResourceId,{left}Description{right},DisplayName,Emphasize,{left}Name{right},{left}Required{right},ShowInDiscoveryDocument) values (@ApiResourceId,@Description,@DisplayName,@Emphasize,@Name,@Required,@ShowInDiscoveryDocument)", new
+                                {
+                                    ApiResourceId = apiid,
+                                    item.Description,
+                                    item.DisplayName,
+                                    item.Emphasize,
+                                    item.Name,
+                                    item.Required,
+                                    item.ShowInDiscoveryDocument
+                                }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                                if (ret != 1)
+                                {
+                                    throw new Exception($"execute insert error,return values is {ret}");
+                                }
+                            }
+                        }
+                        t.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        t.Rollback();
+                        throw ex;
+                    }
+                }
+            }
+        }
     }
 }
