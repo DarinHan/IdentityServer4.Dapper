@@ -4,6 +4,7 @@ IdentityServer4.Dapper is a package that provides the configuration APIs to add 
 
 You can use all database Dapper supported easily.
 
+by now, we support only mysql.
 what you need to do is download the package Darin.IdentityServer4.Dapper.Mysql from nuget using 
 ```
 Install-Package Darin.IdentityServer4.Dapper.Mysql -Version 1.0.0 
