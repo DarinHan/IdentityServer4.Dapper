@@ -8,7 +8,7 @@ what you need to do is download the package Darin.IdentityServer4.Dapper.Mysql f
 Install-Package Darin.IdentityServer4.Dapper.Mysql -Version 1.0.0 
 
 then using the AddMySQLProvider meth to config the DB Connection, then call the AddConfigurationStore and AddOperationalStore method to config the stores provided in this solution.
-<code>
+```
 public IServiceProvider ConfigureServices(IServiceCollection services)
 {
     services.AddIdentityServer()
@@ -29,7 +29,7 @@ public IServiceProvider ConfigureServices(IServiceCollection services)
 
     return services.BuildServiceProvider(validateScopes: true);
 }
-</code>
+```
 
 notice that, we provide some default Providers in namespace IdentityServer4.Dapper.DefaultProviders, these providers can work all right indepence of which rmdb used. In other words, all sql used in IdentityServer4.Dapper.DefaultProviders are standard SQL.Maybe some problems are made in your project, you can override it in subclass and remove from servicecollection.
 
