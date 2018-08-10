@@ -38,7 +38,7 @@ namespace IdentityServer.Dapper.Test
                 //use mysql provider
                 .AddMySQLProvider(option =>
                 {
-                    option.ConnectionString = "server=10.40.0.190;uid=changyin.han;pwd=fjfhhan07;database=identityserver4;SslMode=None;";
+                    option.ConnectionString = "server=127.0.0.1;uid=darinhan;pwd=darinhanpassword;database=identityserver4;SslMode=None;";
                 })
                 // configure identity server with default stores, keys, clients and scopes,which use the standard SQL
                 .AddConfigurationStore()

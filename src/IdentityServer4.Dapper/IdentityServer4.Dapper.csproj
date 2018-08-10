@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <PackageId>Darin.IdentityServer4.Dapper</PackageId>
+    <Authors>Darin Han</Authors>
+    <Company>Personnal</Company>
   </PropertyGroup>
 
   <ItemGroup>

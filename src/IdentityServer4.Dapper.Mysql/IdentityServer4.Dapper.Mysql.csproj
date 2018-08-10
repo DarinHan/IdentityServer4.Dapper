@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <PackageId>Darin.IdentityServer4.Dapper.Mysql</PackageId>
+    <Authors>Darin Han</Authors>
+    <Product>IdentityServer4.Dapper.Mysql</Product>
   </PropertyGroup>
 
   <ItemGroup>
