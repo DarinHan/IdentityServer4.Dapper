@@ -48,16 +48,17 @@ namespace IdentityServer.Dapper.Test
         {
             var builder = WebHost.CreateDefaultBuilder(args)
                  .UseContentRoot(Directory.GetCurrentDirectory())
-                 //.ConfigureAppConfiguration((hostingContext, config) =>
-                 //{
-                 //    var env = hostingContext.HostingEnvironment;
-                 //    config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                 //          .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
-                 //    config.AddEnvironmentVariables();
-                 //})
+                 .ConfigureAppConfiguration((hostingContext, config) =>
+                 {
+                     var env = hostingContext.HostingEnvironment;
+                     config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                           .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
+                     config.AddEnvironmentVariables();
+                 })
                  .ConfigureLogging(logging =>
                  {
                      logging.ClearProviders();
+                     logging.AddConsole();
                      logging.SetMinimumLevel(LogLevel.Trace);
                  })
                  .UseNLog()  // NLog: setup NLog for Dependency injection

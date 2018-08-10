@@ -12,7 +12,7 @@ namespace IdentityServer4.Dapper.Options
         /// <value>
         /// The token cleanup interval.
         /// </value>
-        public double TokenCleanupInterval { get; internal set; } = 3600;
+        public double TokenCleanupInterval { get; set; } = 3600;
         /// <summary>
         /// Gets or sets the number of records to remove at a time. Defaults to 100.
         /// </summary>

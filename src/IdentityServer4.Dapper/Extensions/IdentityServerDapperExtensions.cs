@@ -9,6 +9,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using IdentityServer4.Extensions;
+using System.Linq;
 
 namespace IdentityServer4.Dapper.Extensions
 {
@@ -57,9 +59,13 @@ namespace IdentityServer4.Dapper.Extensions
             storeOptionsAction?.Invoke(storeOptions);
             builder.Services.AddSingleton(storeOptions);
 
-            builder.Services.RemoveAll<IPersistedGrantStore>();
+            var memopersistedstore = builder.Services.FirstOrDefault(c => c.ServiceType == typeof(IPersistedGrantStore));
+            if (memopersistedstore != null)
+            {
+                builder.Services.Remove(memopersistedstore);
+            }
             builder.Services.AddSingleton<IPersistedGrantStore, PersistedGrantStore>();
-
+            memopersistedstore = builder.Services.FirstOrDefault(c => c.ServiceType == typeof(IPersistedGrantStore));
             return builder;
         }
     }

@@ -20,7 +20,7 @@ namespace IdentityServer.Dapper.Test
         //    _env = env;
         //}
 
-        public void ConfigureServices(IServiceCollection services)
+        public IServiceProvider ConfigureServices(IServiceCollection services)
         {
             //支持跨域
             services.AddCors(options =>
@@ -41,7 +41,13 @@ namespace IdentityServer.Dapper.Test
                     option.ConnectionString = "server=10.40.0.190;uid=changyin.han;pwd=fjfhhan07;database=identityserver4;SslMode=None;";
                 })
                 .AddConfigurationStore()
-                .AddOperationalStore();
+                .AddOperationalStore(option =>
+                {
+                    option.EnableTokenCleanup = true;
+                    option.TokenCleanupInterval = 10;
+                });
+
+            return services.BuildServiceProvider(validateScopes: true);
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)

@@ -110,7 +110,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             using (var connection = _options.DbProviderFactory.CreateConnection())
             {
                 connection.ConnectionString = _options.ConnectionString;
-                var count = connection.ExecuteScalar<int>("select count(key) from PersistedGrants p where p.Expiration < @UtcNow", new { UtcNow = dateTime }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                var count = connection.ExecuteScalar<int>("select count(1) from PersistedGrants p where p.Expiration < @UtcNow", new { UtcNow = dateTime }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                 return count;
             }
         }
