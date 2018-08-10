@@ -11,14 +11,14 @@ namespace IdentityServer.Dapper.Test
 {
     class Startup
     {
-        //private readonly IConfiguration _config;
-        //private readonly IHostingEnvironment _env;
+        private readonly IConfiguration _config;
+        private readonly IHostingEnvironment _env;
 
-        //public Startup(IConfiguration config, IHostingEnvironment env)
-        //{
-        //    _config = config;
-        //    _env = env;
-        //}
+        public Startup(IConfiguration config, IHostingEnvironment env)
+        {
+            _config = config;
+            _env = env;
+        }
 
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
@@ -33,14 +33,16 @@ namespace IdentityServer.Dapper.Test
                         .AllowAnyMethod();
                 });
             });
-            // configure identity server with in-memory stores, keys, clients and scopes
             services.AddIdentityServer()
                 .AddDeveloperSigningCredential()
+                //use mysql provider
                 .AddMySQLProvider(option =>
                 {
                     option.ConnectionString = "server=10.40.0.190;uid=changyin.han;pwd=fjfhhan07;database=identityserver4;SslMode=None;";
                 })
+                // configure identity server with default stores, keys, clients and scopes,which use the standard SQL
                 .AddConfigurationStore()
+                // configure identity server with default Operationalstores,which use the standard SQL
                 .AddOperationalStore(option =>
                 {
                     option.EnableTokenCleanup = true;
