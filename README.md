@@ -6,18 +6,18 @@ You can use all database Dapper supported easily.
 
 by now, we support only mysql and mssql.
 Following is the step for using mysql in your project.
-##Step One:
+## Step One:
 find the sql script for create tables identity using.
 move to the SQL directory in src, and you will find subdirctories by db types.
 move to the Mysql directory, you will find two files which contain the ddl scripts for tables.what you need to do is run these scripts in you schema.
 
-##Step Two:
+## Step Two:
 Download the dll from nuget.
 what you need to do is download the package Darin.IdentityServer4.Dapper.Mysql from nuget using 
 ```
 Install-Package Darin.IdentityServer4.Dapper.Mysql -Version 1.0.0 
 ```
-##Step Three:
+## Step Three:
 then using the AddMySQLProvider meth to config the DB Connection, then call the AddConfigurationStore and AddOperationalStore method to config the stores provided in this solution.
 ```
 public IServiceProvider ConfigureServices(IServiceCollection services)
