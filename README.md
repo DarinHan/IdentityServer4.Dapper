@@ -8,7 +8,7 @@ by now, we support only mysql and mssql.
 Following is the step for using mysql in your project.
 ## Step One:
 find the sql script for create tables identity using.
-move to the SQL directory in src, and you will find subdirctories by db types.
+move to the SQL directory in src, and you will find subdirctories named by db types.
 move to the Mysql directory, you will find two files which contain the ddl scripts for tables.what you need to do is run these scripts in you schema.
 
 ## Step Two:
