@@ -2,6 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <PackageId>Darin.IdentityServer4.Dapper.MSSql</PackageId>
+    <Authors>Darin</Authors>
+    <Company>Darin</Company>
+    <Product>Darin.IdentityServer4.Dapper.MSSql</Product>
   </PropertyGroup>
 
   <ItemGroup>
