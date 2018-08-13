@@ -21,6 +21,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdentityServer.Dapper.Test"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Host", "Host", "{0DFF067E-2AF4-482D-BA55-F0BD0842CC43}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdentityServer4.Dapper.MSSql", "IdentityServer4.Dapper.MSSql\IdentityServer4.Dapper.MSSql.csproj", "{9E621B31-EADB-4D67-8D11-6D58545EC449}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{B945E150-8619-4C3D-BABD-A95064B64055}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B945E150-8619-4C3D-BABD-A95064B64055}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B945E150-8619-4C3D-BABD-A95064B64055}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E621B31-EADB-4D67-8D11-6D58545EC449}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E621B31-EADB-4D67-8D11-6D58545EC449}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E621B31-EADB-4D67-8D11-6D58545EC449}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E621B31-EADB-4D67-8D11-6D58545EC449}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
