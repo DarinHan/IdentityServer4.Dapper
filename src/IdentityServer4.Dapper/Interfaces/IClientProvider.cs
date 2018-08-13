@@ -12,7 +12,8 @@ namespace IdentityServer4.Dapper.Interfaces
     {
         Client FindClientById(string clientid);
         void Add(Client client);
+        IEnumerable<string> QueryAllowedCorsOrigins();  
     }
 
-   
+
 }

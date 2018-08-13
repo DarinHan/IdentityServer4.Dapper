@@ -5,6 +5,7 @@ using IdentityServer4.Dapper.Options;
 using IdentityServer4.Models;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Data;
 
 namespace IdentityServer4.Dapper.DefaultProviders
@@ -51,7 +52,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 if (client != null)
                 {
                     //do not use the mutiquery in case of some db can not return muti sets
-                    //if you want to redurce the time cost,please recode in your owner class which should inherit from IClientProvider or this
+                    //if you want to redurce the time cost,please recode in your own class which should inherit from IClientProvider or this
                     var granttypes = connection.Query<Entities.ClientGrantType>("select * from ClientGrantTypes where  ClientId = @ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                     var redirecturls = connection.Query<Entities.ClientRedirectUri>("select * from ClientRedirectUris where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                     var postlogoutredirecturis = connection.Query<Entities.ClientPostLogoutRedirectUri>("select * from ClientPostLoutRedirectUris where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
@@ -360,6 +361,16 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         throw ex;
                     }
                 }
+            }
+        }
+
+        public IEnumerable<string> QueryAllowedCorsOrigins()
+        {
+            using (var connection = _options.DbProviderFactory.CreateConnection())
+            {
+                connection.ConnectionString = _options.ConnectionString;
+                var corsOrigins = connection.Query<string>("select distinct Origin from ClientCorsOrigins where Origin is not null", commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                return corsOrigins;
             }
         }
     }
