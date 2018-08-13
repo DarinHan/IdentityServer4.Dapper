@@ -23,6 +23,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Host", "Host", "{0DFF067E-2
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdentityServer4.Dapper.MSSql", "IdentityServer4.Dapper.MSSql\IdentityServer4.Dapper.MSSql.csproj", "{9E621B31-EADB-4D67-8D11-6D58545EC449}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MSsql", "MSsql", "{DF9F9E52-89E6-46C3-9E70-F62A2B67145A}"
+	ProjectSection(SolutionItems) = preProject
+		ConfigurationDb.txt = ConfigurationDb.txt
+		PersistedGrantDb.txt = PersistedGrantDb.txt
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -53,6 +59,7 @@ Global
 		{40FFB9E9-D457-40E6-9290-7DC3D8787D2E} = {BA3E0B94-F1C1-4CB7-AF5B-EA29592827B5}
 		{3C9A2F08-FB76-4B98-904F-4D20E66C09A2} = {40FFB9E9-D457-40E6-9290-7DC3D8787D2E}
 		{B945E150-8619-4C3D-BABD-A95064B64055} = {0DFF067E-2AF4-482D-BA55-F0BD0842CC43}
+		{DF9F9E52-89E6-46C3-9E70-F62A2B67145A} = {40FFB9E9-D457-40E6-9290-7DC3D8787D2E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {92668E9B-AE48-496A-AB8F-F9E3F9F47F34}
