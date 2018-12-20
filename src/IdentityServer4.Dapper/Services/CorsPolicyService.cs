@@ -32,7 +32,7 @@ namespace IdentityServer4.Dapper.Services
             var distinctOrigins = _clientprovider.QueryAllowedCorsOrigins();
 
             var isAllowed = distinctOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase);
-            _logger.LogDebug("Origin {origin} is allowed: {originAllowed}", origin, isAllowed);
+            _logger.LogDebug($"Origin {origin} is allowed: {isAllowed}");
 
             return Task.FromResult(isAllowed);
         }

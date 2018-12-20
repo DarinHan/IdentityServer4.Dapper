@@ -1,8 +1,7 @@
-﻿using IdentityServer4;
-using IdentityServer4.Models;
+﻿using IdentityServer4.Models;
 using System.Collections.Generic;
 
-namespace IdentityServer.Dapper.Test.Configuration
+namespace IdentityServer4.Dapper.Host.Configuration
 {
     public class Clients
     {

@@ -10,7 +10,14 @@ namespace IdentityServer4.Dapper.Interfaces
         ApiResource FindApiResource(string name);
 
         IEnumerable<ApiResource> FindApiResourcesByScope(IEnumerable<string> scopeNames);
+
         IEnumerable<ApiResource> FindApiResourcesAll();
+
         void Add(ApiResource apiResource);
+
+        void Remove(string name);
+
+        IEnumerable<ApiResource> Search(string keywords, int pageIndex, int pageSize, out int totalCount);
+
     }
 }

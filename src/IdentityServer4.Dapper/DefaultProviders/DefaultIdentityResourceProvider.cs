@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IdentityServer4.Dapper.DefaultProviders
 {
-    class DefaultIdentityResourceProvider : IIdentityResourceProvider
+    public class DefaultIdentityResourceProvider : IIdentityResourceProvider
     {
         private DBProviderOptions _options;
         private readonly ILogger<DefaultIdentityResourceProvider> _logger;
@@ -43,6 +43,11 @@ namespace IdentityServer4.Dapper.DefaultProviders
 
         public IdentityResource FindIdentityResourcesByName(string name)
         {
+            return GetByName(name).ToModel();
+        }
+
+        public Entities.IdentityResource GetByName(string name)
+        {
             using (var connection = _options.DbProviderFactory.CreateConnection())
             {
                 connection.ConnectionString = _options.ConnectionString;
@@ -52,7 +57,16 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 {
                     identities.UserClaims = claims?.Where(c => c.IdentityResource.Id == identities.Id).AsList();
                 }
-                return identities.ToModel();
+                return identities;
+            }
+        }
+
+        public IEnumerable<Entities.IdentityClaim> GetClaimsByName(string identityName)
+        {
+            using (var connection = _options.DbProviderFactory.CreateConnection())
+            {
+                connection.ConnectionString = _options.ConnectionString;
+                return connection.Query<Entities.IdentityClaim>("select claim.* from IdentityClaims claim inner join IdentityResources identity on claim.auto_incrementResourceId = identity.id where identity.Name = @Name",  new { Name = identityName }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
             }
         }
 
@@ -128,7 +142,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         string left = _options.ColumnProtect["left"];
                         string right = _options.ColumnProtect["right"];
 
-                        var ret = con.Execute($"insert into IdentityResources ({left}Description{right},DisplayName,Emphasize,Enabled,{left}Name{right},Required,ShowInDiscoveryDocument) values (@Description,@DisplayName,@Emphasize,@Enabled,@Name,@Required,@ShowInDiscoveryDocument)", new
+                        var identityResourceid = con.ExecuteScalar<int>($"insert into IdentityResources ({left}Description{right},DisplayName,Emphasize,Enabled,{left}Name{right},Required,ShowInDiscoveryDocument) values (@Description,@DisplayName,@Emphasize,@Enabled,@Name,@Required,@ShowInDiscoveryDocument);{_options.GetLastInsertID}", new
                         {
                             entity.Description,
                             entity.DisplayName,
@@ -138,12 +152,9 @@ namespace IdentityServer4.Dapper.DefaultProviders
                             entity.Required,
                             entity.ShowInDiscoveryDocument
                         }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
-                        if (ret != 1)
-                        {
-                            throw new Exception($"execute insert error,return values is {ret}");
-                        }
 
-                        var identityResourceid = con.ExecuteScalar<int>(_options.GetLastInsertID, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+
+                        var ret = 0;
 
                         if (entity.UserClaims != null && entity.UserClaims.Count() > 0)
                         {
@@ -169,6 +180,64 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         throw ex;
                     }
                 }
+            }
+        }
+
+
+        public void Remove(string name)
+        {
+            var entity = GetByName(name);
+            if (entity == null)
+            {
+                return;
+            }
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                con.Open();
+                using (var t = con.BeginTransaction())
+                {
+                    try
+                    {
+                        var ret = con.Execute($"delete from IdentityResources where id=@id", new { entity.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                        ret = con.Execute("delete from IdentityClaims where auto_incrementResourceId=@auto_incrementResourceId;", new
+                        {
+                            auto_incrementResourceId = entity.Id
+                        }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                        t.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        t.Rollback();
+                        throw ex;
+                    }
+                }
+            }
+        }
+
+        public IEnumerable<IdentityResource> Search(string keywords, int pageIndex, int pageSize, out int totalCount)
+        {
+            using (var connection = _options.DbProviderFactory.CreateConnection())
+            {
+                connection.ConnectionString = _options.ConnectionString;
+
+                DynamicParameters pairs = new DynamicParameters();
+                pairs.Add("keywords", "%" + keywords + "%");
+
+                var countsql = "select count(1) from IdentityResources where Name like @keywords or DisplayName like @keywords or Description like @keywords";
+                totalCount = connection.ExecuteScalar<int>(countsql, pairs, commandType: CommandType.Text);
+
+                if (totalCount == 0)
+                {
+                    return null;
+                }
+
+                var clients = connection.Query<Entities.IdentityResource>(_options.GetPageQuerySQL("select * from IdentityResources where  Name like @keywords or DisplayName like @keywords or Description like @keywords", pageIndex, pageSize, totalCount, "", pairs), pairs, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                if (clients != null)
+                {
+                    return clients.Select(c => c.ToModel());
+                }
+                return null;
             }
         }
     }

@@ -16,11 +16,14 @@ namespace IdentityServer4.Dapper.DefaultProviders
     {
         private DBProviderOptions _options;
         private readonly ILogger<DefaultPersistedGrantProvider> _logger;
-
+        private readonly string left;
+        private readonly string right;
         public DefaultPersistedGrantProvider(DBProviderOptions dBProviderOptions, ILogger<DefaultPersistedGrantProvider> logger)
         {
             this._options = dBProviderOptions ?? throw new ArgumentNullException(nameof(dBProviderOptions));
             this._logger = logger;
+            left = _options.ColumnProtect["left"];
+            right = _options.ColumnProtect["right"];
         }
 
 
@@ -35,16 +38,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 {
                     try
                     {
-                        var ret = con.Execute("insert into PersistedGrants (Key,ClientId,CreationTime,Data,Expiration,SubjectId,Type) values (@Key,@ClientId,@CreationTime,@Data,@Expiration,@SubjectId,@Type,)", new
-                        {
-                            entity.Key,
-                            entity.ClientId,
-                            entity.CreationTime,
-                            entity.Data,
-                            entity.Expiration,
-                            entity.SubjectId,
-                            entity.Type
-                        }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                        var ret = con.Execute($"insert into PersistedGrants ({left}Key{right},ClientId,CreationTime,Data,Expiration,SubjectId,{left}Type{right}) values (@Key,@ClientId,@CreationTime,@Data,@Expiration,@SubjectId,@Type)", entity, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
                         if (ret != 1)
                         {
                             throw new Exception($"execute insert error,return values is {ret}");
@@ -69,8 +63,9 @@ namespace IdentityServer4.Dapper.DefaultProviders
             Entities.PersistedGrant persistedGrant = null;
             using (var connection = _options.DbProviderFactory.CreateConnection())
             {
+
                 connection.ConnectionString = _options.ConnectionString;
-                persistedGrant = connection.QueryFirstOrDefault<Entities.PersistedGrant>("select * from PersistedGrants where Key = @Key", new { Key = key }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                persistedGrant = connection.QueryFirstOrDefault<Entities.PersistedGrant>($"select * from persistedgrants where {left}Key{right} = @Key", new { Key = key }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
             }
             return persistedGrant?.ToModel();
         }
@@ -100,7 +95,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             using (var connection = _options.DbProviderFactory.CreateConnection())
             {
                 connection.ConnectionString = _options.ConnectionString;
-                persistedGrants = connection.Query<Entities.PersistedGrant>("select * from PersistedGrants where (SubjectId = @SubjectId or @SubjectId is null) and (ClientId = @ClientId or @ClientId is null) and (Type = @Type or @Type is null)", new { SubjectId = subjectId, ClientId = clientId, Type = type }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                persistedGrants = connection.Query<Entities.PersistedGrant>($"select * from PersistedGrants where (SubjectId = @SubjectId or @SubjectId is null) and (ClientId = @ClientId or @ClientId is null) and ({left}Type{right} = @Type or @Type is null)", new { SubjectId = subjectId, ClientId = clientId, Type = type }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
             }
             return persistedGrants?.Select(c => c.ToModel());
         }
@@ -129,7 +124,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 {
                     try
                     {
-                        var ret = connection.Execute("delete PersistedGrants where Key = @Key", new { Key = key }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                        var ret = connection.Execute($"delete from PersistedGrants where {left}Key{right} = @Key", new { Key = key }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
                         t.Commit();
                     }
                     catch (Exception ex)
@@ -152,7 +147,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 {
                     try
                     {
-                        var ret = connection.Execute("delete PersistedGrants where SubjectId = @SubjectId and ClientId = @ClientId", new { SubjectId = subjectId, ClientId = clientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                        var ret = connection.Execute("delete from PersistedGrants where SubjectId = @SubjectId and ClientId = @ClientId", new { SubjectId = subjectId, ClientId = clientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
                         t.Commit();
                     }
                     catch (Exception ex)
@@ -169,13 +164,14 @@ namespace IdentityServer4.Dapper.DefaultProviders
         {
             using (var connection = _options.DbProviderFactory.CreateConnection())
             {
+
                 connection.ConnectionString = _options.ConnectionString;
                 connection.Open();
                 using (var t = connection.BeginTransaction())
                 {
                     try
                     {
-                        var ret = connection.Execute("delete PersistedGrants where SubjectId = @SubjectId and ClientId = @ClientId and Type = @Type", new { SubjectId = subjectId, ClientId = clientId, Type = type }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                        var ret = connection.Execute($"delete from PersistedGrants where SubjectId = @SubjectId and ClientId = @ClientId and {left}Type{right} = @Type", new { SubjectId = subjectId, ClientId = clientId, Type = type }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
                         t.Commit();
                     }
                     catch (Exception ex)
@@ -199,7 +195,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 {
                     try
                     {
-                        var ret = connection.Execute("delete PersistedGrants where Expiration < @UtcNow", new { UtcNow = dateTime }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                        var ret = connection.Execute("delete from PersistedGrants where Expiration < @UtcNow", new { UtcNow = dateTime }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
                         t.Commit();
                     }
                     catch (Exception ex)
@@ -212,46 +208,46 @@ namespace IdentityServer4.Dapper.DefaultProviders
             }
         }
 
-        public void Store(PersistedGrant grant)
-        {
-            var dbgrant = Get(grant.Key);
-            if (dbgrant != null)
-            {
-                throw new InvalidOperationException($"you can not add an existed PersistedGrant,key={grant.Key}.");
-            }
-            var entity = grant.ToEntity();
-            using (var con = _options.DbProviderFactory.CreateConnection())
-            {
-                con.ConnectionString = _options.ConnectionString;
-                con.Open();
-                using (var t = con.BeginTransaction())
-                {
-                    try
-                    {
-                        var ret = con.Execute("insert into PersistedGrants (Key,ClientId,CreationTime,Data,Expiration,SubjectId,Type) values (@Key,@ClientId,@CreationTime,@Data,@Expiration,@SubjectId,@Type,)", new
-                        {
-                            entity.Key,
-                            entity.ClientId,
-                            entity.CreationTime,
-                            entity.Data,
-                            entity.Expiration,
-                            entity.SubjectId,
-                            entity.Type
-                        }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
-                        if (ret != 1)
-                        {
-                            throw new Exception($"execute insert error,return values is {ret}");
-                        }
-                        t.Commit();
-                    }
-                    catch (Exception ex)
-                    {
-                        t.Rollback();
-                        throw ex;
-                    }
-                }
-            }
-        }
+        //public void Store(PersistedGrant grant)
+        //{
+        //    var dbgrant = Get(grant.Key);
+        //    if (dbgrant != null)
+        //    {
+        //        throw new InvalidOperationException($"you can not add an existed PersistedGrant,key={grant.Key}.");
+        //    }
+        //    var entity = grant.ToEntity();
+        //    using (var con = _options.DbProviderFactory.CreateConnection())
+        //    {
+        //        con.ConnectionString = _options.ConnectionString;
+        //        con.Open();
+        //        using (var t = con.BeginTransaction())
+        //        {
+        //            try
+        //            {
+        //                var ret = con.Execute($"insert into PersistedGrants ({left}Key{right},ClientId,CreationTime,Data,Expiration,SubjectId,{left}Type{right}) values (@Key,@ClientId,@CreationTime,@Data,@Expiration,@SubjectId,@Type,)", new
+        //                {
+        //                    entity.Key,
+        //                    entity.ClientId,
+        //                    entity.CreationTime,
+        //                    entity.Data,
+        //                    entity.Expiration,
+        //                    entity.SubjectId,
+        //                    entity.Type
+        //                }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+        //                if (ret != 1)
+        //                {
+        //                    throw new Exception($"execute insert error,return values is {ret}");
+        //                }
+        //                t.Commit();
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                t.Rollback();
+        //                throw ex;
+        //            }
+        //        }
+        //    }
+        //}
 
         public void Update(PersistedGrant token)
         {
@@ -269,21 +265,21 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 {
                     try
                     {
-                        var ret = con.Execute("update PersistedGrants" +
-                            "set ClientId = @ClientId," +
-                            "Data = @Data," +
-                            "Expiration = @Expiration," +
-                            "SubjectId = @SubjectId," +
-                            "Type = @Type," +
-                            "where Key = @Key" , new
-                        {
-                            entity.Key,
-                            entity.ClientId,
-                            entity.Data,
-                            entity.Expiration,
-                            entity.SubjectId,
-                            entity.Type
-                        }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                        var ret = con.Execute($"update PersistedGrants " +
+                            $"set ClientId = @ClientId," +
+                            $"{left}Data{right} = @Data, " +
+                            $"Expiration = @Expiration, " +
+                            $"SubjectId = @SubjectId, " +
+                            $"{left}Type{right} = @Type " +
+                            $"where {left}Key{right} = @Key", new
+                            {
+                                entity.Key,
+                                entity.ClientId,
+                                entity.Data,
+                                entity.Expiration,
+                                entity.SubjectId,
+                                entity.Type
+                            }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
                         if (ret != 1)
                         {
                             throw new Exception($"execute insert error,return values is {ret}");
@@ -298,5 +294,32 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 }
             }
         }
+
+        public IEnumerable<PersistedGrant> Search(string keywords, int pageIndex, int pageSize, out int totalCount)
+        {
+            using (var connection = _options.DbProviderFactory.CreateConnection())
+            {
+                connection.ConnectionString = _options.ConnectionString;
+
+                DynamicParameters pairs = new DynamicParameters();
+                pairs.Add("keywords", "%" + keywords + "%");
+
+                var countsql = $"select count(1) from persistedgrants where {left}Key{right} like @keywords or ClientId like @keywords or SubjectId like @keywords OR {left}Type{right} like @keywords";
+                totalCount = connection.ExecuteScalar<int>(countsql, pairs, commandType: CommandType.Text);
+
+                if (totalCount == 0)
+                {
+                    return null;
+                }
+
+                var clients = connection.Query<Entities.PersistedGrant>(_options.GetPageQuerySQL($"select * from persistedgrants where {left}Key{right} like @keywords or ClientId like @keywords or SubjectId like @keywords OR {left}Type{right} like @keywords", pageIndex, pageSize, totalCount, "", pairs), pairs, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                if (clients != null)
+                {
+                    return clients.Select(c => c.ToModel());
+                }
+                return null;
+            }
+        }
+
     }
 }

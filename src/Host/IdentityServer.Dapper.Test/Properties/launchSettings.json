@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "IdentityServer.Dapper.Test": {
-      "commandName": "Project",
-      "commandLineArgs": "--seed"
-    }
-  }
-}

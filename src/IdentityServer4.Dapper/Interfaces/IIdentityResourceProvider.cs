@@ -11,5 +11,9 @@ namespace IdentityServer4.Dapper.Interfaces
         IEnumerable<IdentityResource> FindIdentityResourcesAll();
         void Add(IdentityResource identityResource);
         IdentityResource FindIdentityResourcesByName(string name);
+
+        void Remove(string name);
+        IEnumerable<IdentityResource> Search(string keywords, int pageIndex, int pageSize, out int totalCount);
+
     }
 }

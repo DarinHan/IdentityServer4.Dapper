@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/src/Host/IdentityServer.Dapper.Test/IdentityServer.Dapper.Test.csproj"
+            ],
+            "problemMatcher": "$msCompile"
+        }
+    ]
+}

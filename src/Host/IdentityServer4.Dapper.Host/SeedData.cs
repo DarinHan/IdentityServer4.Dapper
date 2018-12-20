@@ -1,12 +1,10 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using IdentityServer4.Dapper.Host.Configuration;
 using IdentityServer4.Dapper.Interfaces;
-using IdentityServer.Dapper.Test.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Linq;
 
-namespace IdentityServer.Dapper.Test
+namespace IdentityServer4.Dapper.Host
 {
     public class SeedData
     {
@@ -51,7 +49,7 @@ namespace IdentityServer.Dapper.Test
                 Console.WriteLine("IdentityResources being populated");
                 foreach (var resource in Resources.GetIdentityResources().ToList())
                 {
-                    if(identityResourceProvider.FindIdentityResourcesByName(resource.Name)==null)
+                    if (identityResourceProvider.FindIdentityResourcesByName(resource.Name) == null)
                     {
                         identityResourceProvider.Add(resource);
                     }
@@ -72,7 +70,7 @@ namespace IdentityServer.Dapper.Test
                 Console.WriteLine("ApiResources being populated");
                 foreach (var resource in Resources.GetApiResources().ToList())
                 {
-                    if(apiResourceProvider.FindApiResource(resource.Name)==null)
+                    if (apiResourceProvider.FindApiResource(resource.Name) == null)
                     {
                         apiResourceProvider.Add(resource);
                     }

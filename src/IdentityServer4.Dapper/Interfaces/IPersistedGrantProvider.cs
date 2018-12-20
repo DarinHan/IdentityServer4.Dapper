@@ -16,6 +16,7 @@ namespace IdentityServer4.Dapper.Interfaces
         void RemoveAll(string subjectId, string clientId);
         void RemoveAll(string subjectId, string clientId, string type);
         void Remove(string key);
-        void Store(PersistedGrant grant);
+        IEnumerable<PersistedGrant> Search(string keywords, int pageIndex, int pageSize, out int totalCount);
+        
     }
 }

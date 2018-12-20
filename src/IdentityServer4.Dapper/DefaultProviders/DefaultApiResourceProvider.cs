@@ -37,7 +37,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 var api = connection.QueryFirstOrDefault<Entities.ApiResource>("select * from ApiResources where Name = @Name", new { Name = name }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                 if (api != null)
                 {
-                    var secrets = connection.Query<Entities.ApiSecret>("select * from ApiSecrets where ApiResourceId = @ApiResourceId", new { ApiResourceId = api.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                    var secrets = GetSecretByAPIID(api.Id);
                     if (secrets != null)
                     {
                         foreach (var item in secrets)
@@ -46,21 +46,16 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         }
                         api.Secrets = secrets.AsList();
                     }
-                    var scopes = connection.Query<Entities.ApiScope>("select * from ApiScopes where ApiResourceId = @ApiResourceId", new { ApiResourceId = api.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                    var scopes = GetScopesByAPIID(api.Id);
                     if (scopes != null)
                     {
                         foreach (var item in scopes)
                         {
-                            var claims = connection.Query<Entities.ApiScopeClaim>("select * from ApiScopeClaims where ApiScopeId = @ApiScopeId", new { ApiScopeId = item.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
-                            if (claims != null)
-                            {
-                                item.UserClaims = claims.AsList();
-                            }
                             item.ApiResource = api;
                         }
                         api.Scopes = scopes.AsList();
                     }
-                    var apiclaims = connection.Query<Entities.ApiResourceClaim>("select * from ApiClaims where ApiResourceId = @ApiResourceId", new { ApiResourceId = api.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                    var apiclaims = GetClaimsByAPIID(api.Id);
                     if (apiclaims != null)
                     {
                         foreach (var item in apiclaims)
@@ -72,6 +67,17 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 }
 
                 return api?.ToModel();
+            }
+        }
+
+        public Entities.ApiResource GetByName(string name)
+        {
+            using (var connection = _options.DbProviderFactory.CreateConnection())
+            {
+                connection.ConnectionString = _options.ConnectionString;
+
+                var api = connection.QueryFirstOrDefault<Entities.ApiResource>("select * from ApiResources where Name = @Name", new { Name = name }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                return api;
             }
         }
 
@@ -127,6 +133,8 @@ namespace IdentityServer4.Dapper.DefaultProviders
             return lstall.Where(c => c.Scopes.Where(s => names.Contains(s.Name)).Any()).AsEnumerable();
         }
 
+
+
         public void Add(ApiResource apiResource)
         {
             var dbapiResource = FindApiResource(apiResource.Name);
@@ -147,20 +155,15 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         string left = _options.ColumnProtect["left"];
                         string right = _options.ColumnProtect["right"];
 
-                        var ret = con.Execute($"insert into ApiResources ({left}Description{right},DisplayName,Enabled,{left}Name{right}) values (@Description,@DisplayName,@Enabled,@Name)", new
+                        var apiid = con.ExecuteScalar<int>($"insert into ApiResources ({left}Description{right},DisplayName,Enabled,{left}Name{right}) values (@Description,@DisplayName,@Enabled,@Name);{_options.GetLastInsertID}", new
                         {
                             entity.Description,
                             entity.DisplayName,
                             entity.Enabled,
                             entity.Name
                         }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
-                        if (ret != 1)
-                        {
-                            throw new Exception($"execute insert error,return values is {ret}");
-                        }
 
-                        var apiid = con.ExecuteScalar<int>(_options.GetLastInsertID, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
-
+                        var ret = 0;
                         if (entity.UserClaims != null && entity.UserClaims.Count() > 0)
                         {
                             foreach (var item in entity.UserClaims)
@@ -222,6 +225,113 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         throw ex;
                     }
                 }
+            }
+        }
+
+        public void Remove(string name)
+        {
+            var entity = GetByName(name);
+            if (entity == null)
+            {
+                return;
+            }
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                con.Open();
+                var t = con.BeginTransaction();
+                try
+                {
+                    var ret = con.Execute($"delete from ApiResources where Id=@Id;", new
+                    {
+                        entity.Id
+                    }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                    if (ret != 1)
+                    {
+                        throw new Exception($"execute delete error,return values is {ret}");
+                    }
+
+                    con.Execute($"delete from ApiClaims where ApiResourceId=@ApiResourceId;delete from ApiSecrets where ApiResourceId=@ApiResourceId;delete from ApiScopes where ApiResourceId=@ApiResourceId;", new
+                    {
+                        ApiResourceId = entity.Id
+                    }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                    t.Commit();
+                }
+                catch (Exception ex)
+                {
+                    t.Rollback();
+                    throw ex;
+                }
+                finally
+                {
+                    con.Close();
+                }
+            }
+        }
+
+        #region 子属性
+
+        public IEnumerable<Entities.ApiSecret> GetSecretByAPIID(int apiresourceid)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+
+                return con.Query<Entities.ApiSecret>("select * from apisecrets where ApiResourceId = @ApiResourceId", new { ApiResourceId = apiresourceid }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+            }
+        }
+        public IEnumerable<Entities.ApiScope> GetScopesByAPIID(int apiresourceid)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                var scopeclaims = con.Query<Entities.ApiScope, Entities.ApiScopeClaim, Entities.ApiScopeClaim>("select * from ApiScopes inner join ApiScopeClaims on ApiScopes.id = ApiScopeClaims.ApiScopeId where ApiResourceId = @ApiResourceId", (apiscope, apiscopeclaim) =>
+                 {
+                     apiscopeclaim.ApiScope = apiscope;
+                     return apiscopeclaim;
+                 }, new { ApiResourceId = apiresourceid }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                var scopes = scopeclaims.Select(c => c.ApiScope).Distinct();
+                foreach (var scope in scopes)
+                {
+                    scope.UserClaims = scopeclaims.Where(c => c.ApiScope.Id == scope.Id).ToList();
+                }
+                return scopes;
+            }
+        }
+
+        public IEnumerable<Entities.ApiResourceClaim> GetClaimsByAPIID(int apiresourceid)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                return con.Query<Entities.ApiResourceClaim>("select * from ApiClaims where ApiResourceId = @ApiResourceId", new { ApiResourceId = apiresourceid }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+            }
+        }
+        #endregion
+
+        public IEnumerable<ApiResource> Search(string keywords, int pageIndex, int pageSize, out int totalCount)
+        {
+            using (var connection = _options.DbProviderFactory.CreateConnection())
+            {
+                connection.ConnectionString = _options.ConnectionString;
+
+                DynamicParameters pairs = new DynamicParameters();
+                pairs.Add("keywords", "%" + keywords + "%");
+
+                var countsql = "select count(1) from ApiResources where Name like @keywords or DisplayName like @keywords or Description like @keywords";
+                totalCount = connection.ExecuteScalar<int>(countsql, pairs, commandType: CommandType.Text);
+
+                if (totalCount == 0)
+                {
+                    return null;
+                }
+
+                var apis = connection.Query<Entities.ApiResource>(_options.GetPageQuerySQL("select * from ApiResources where Name like @keywords or DisplayName like @keywords or Description like @keywords", pageIndex, pageSize, totalCount, "", pairs), pairs, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                if (apis != null)
+                {
+                    return apis.Select(c => c.ToModel());
+                }
+                return null;
             }
         }
     }

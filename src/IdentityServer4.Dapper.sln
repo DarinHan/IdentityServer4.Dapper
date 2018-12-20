@@ -17,17 +17,19 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Mysql", "Mysql", "{3C9A2F08
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdentityServer4.Dapper.Mysql", "IdentityServer4.Dapper.Mysql\IdentityServer4.Dapper.Mysql.csproj", "{F92000D5-29F2-4CE8-A849-1466431A92AC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdentityServer.Dapper.Test", "Host\IdentityServer.Dapper.Test\IdentityServer.Dapper.Test.csproj", "{B945E150-8619-4C3D-BABD-A95064B64055}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Host", "Host", "{0DFF067E-2AF4-482D-BA55-F0BD0842CC43}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdentityServer4.Dapper.MSSql", "IdentityServer4.Dapper.MSSql\IdentityServer4.Dapper.MSSql.csproj", "{9E621B31-EADB-4D67-8D11-6D58545EC449}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdentityServer4.Dapper.MSSql", "IdentityServer4.Dapper.MSSql\IdentityServer4.Dapper.MSSql.csproj", "{9E621B31-EADB-4D67-8D11-6D58545EC449}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MSsql", "MSsql", "{DF9F9E52-89E6-46C3-9E70-F62A2B67145A}"
 	ProjectSection(SolutionItems) = preProject
 		ConfigurationDb.txt = ConfigurationDb.txt
 		PersistedGrantDb.txt = PersistedGrantDb.txt
 	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdentityServer.Dapper.xUnitTest", "IdentityServer.Dapper.xUnitTest\IdentityServer.Dapper.xUnitTest.csproj", "{A7608473-26D2-457C-A31E-CEFE2FC78B04}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdentityServer4.Dapper.Host", "Host\IdentityServer4.Dapper.Host\IdentityServer4.Dapper.Host.csproj", "{3AABE11E-5D02-4C0A-B6B8-C1A4EE48563A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -43,14 +45,18 @@ Global
 		{F92000D5-29F2-4CE8-A849-1466431A92AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F92000D5-29F2-4CE8-A849-1466431A92AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F92000D5-29F2-4CE8-A849-1466431A92AC}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B945E150-8619-4C3D-BABD-A95064B64055}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B945E150-8619-4C3D-BABD-A95064B64055}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B945E150-8619-4C3D-BABD-A95064B64055}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B945E150-8619-4C3D-BABD-A95064B64055}.Release|Any CPU.Build.0 = Release|Any CPU
 		{9E621B31-EADB-4D67-8D11-6D58545EC449}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9E621B31-EADB-4D67-8D11-6D58545EC449}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9E621B31-EADB-4D67-8D11-6D58545EC449}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9E621B31-EADB-4D67-8D11-6D58545EC449}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7608473-26D2-457C-A31E-CEFE2FC78B04}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7608473-26D2-457C-A31E-CEFE2FC78B04}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7608473-26D2-457C-A31E-CEFE2FC78B04}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7608473-26D2-457C-A31E-CEFE2FC78B04}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3AABE11E-5D02-4C0A-B6B8-C1A4EE48563A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3AABE11E-5D02-4C0A-B6B8-C1A4EE48563A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3AABE11E-5D02-4C0A-B6B8-C1A4EE48563A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3AABE11E-5D02-4C0A-B6B8-C1A4EE48563A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -58,8 +64,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{40FFB9E9-D457-40E6-9290-7DC3D8787D2E} = {BA3E0B94-F1C1-4CB7-AF5B-EA29592827B5}
 		{3C9A2F08-FB76-4B98-904F-4D20E66C09A2} = {40FFB9E9-D457-40E6-9290-7DC3D8787D2E}
-		{B945E150-8619-4C3D-BABD-A95064B64055} = {0DFF067E-2AF4-482D-BA55-F0BD0842CC43}
 		{DF9F9E52-89E6-46C3-9E70-F62A2B67145A} = {40FFB9E9-D457-40E6-9290-7DC3D8787D2E}
+		{3AABE11E-5D02-4C0A-B6B8-C1A4EE48563A} = {0DFF067E-2AF4-482D-BA55-F0BD0842CC43}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {92668E9B-AE48-496A-AB8F-F9E3F9F47F34}

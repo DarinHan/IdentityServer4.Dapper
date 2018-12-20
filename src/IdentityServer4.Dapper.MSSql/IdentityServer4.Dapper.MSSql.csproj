@@ -6,6 +6,7 @@
     <Authors>Darin</Authors>
     <Company>Darin</Company>
     <Product>Darin.IdentityServer4.Dapper.MSSql</Product>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
   <ItemGroup>

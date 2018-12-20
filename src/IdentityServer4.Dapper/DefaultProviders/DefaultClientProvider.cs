@@ -7,6 +7,9 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Linq.Expressions;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace IdentityServer4.Dapper.DefaultProviders
 {
@@ -40,30 +43,29 @@ namespace IdentityServer4.Dapper.DefaultProviders
         /// <returns></returns>
         public virtual Client FindClientById(string clientid)
         {
-            if (string.IsNullOrWhiteSpace(clientid))
+            var client = GetById(clientid);
+            if (client == null)
             {
                 return null;
             }
+
             using (var connection = _options.DbProviderFactory.CreateConnection())
             {
                 connection.ConnectionString = _options.ConnectionString;
 
-                var client = connection.QueryFirstOrDefault<Entities.Client>("select * from Clients where ClientId = @ClientId", new { ClientId = clientid }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                 if (client != null)
                 {
                     //do not use the mutiquery in case of some db can not return muti sets
                     //if you want to redurce the time cost,please recode in your own class which should inherit from IClientProvider or this
-                    var granttypes = connection.Query<Entities.ClientGrantType>("select * from ClientGrantTypes where  ClientId = @ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
-                    var redirecturls = connection.Query<Entities.ClientRedirectUri>("select * from ClientRedirectUris where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
-                    var postlogoutredirecturis = connection.Query<Entities.ClientPostLogoutRedirectUri>("select * from ClientPostLoutRedirectUris where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
-                    var allowedscopes = connection.Query<Entities.ClientScope>("select * from ClientScopes where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
-                    var secrets = connection.Query<Entities.ClientSecret>("select * from ClientSecrets where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
-                    var claims = connection.Query<Entities.ClientClaim>("select * from ClientClaims where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
-                    var iprestrictions = connection.Query<Entities.ClientIdPRestriction>("select * from ClientIdPRestrictions where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
-                    var corsOrigins = connection.Query<Entities.ClientCorsOrigin>("select * from ClientCorsOrigins where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
-                    var properties = connection.Query<Entities.ClientProperty>("select * from ClientProperties where ClientId=@ClientId", new { ClientId = client.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
-                    //do not need to close,because it has been closed in Connection.Query
-                    //connection.Close();
+                    var granttypes = GetClientGrantTypeByClientID(client.Id);
+                    var redirecturls = GetClientRedirectUriByClientID(client.Id);
+                    var postlogoutredirecturis = GetClientPostLogoutRedirectUriByClientID(client.Id);
+                    var allowedscopes = GetClientScopeByClientID(client.Id);
+                    var secrets = GetClientSecretByClientID(client.Id);
+                    var claims = GetClientClaimByClientID(client.Id);
+                    var iprestrictions = GetClientIdPRestrictionByClientID(client.Id);
+                    var corsOrigins = GetClientCorsOriginByClientID(client.Id);
+                    var properties = GetClientPropertyByClientID(client.Id);
 
                     if (granttypes != null)
                     {
@@ -145,6 +147,22 @@ namespace IdentityServer4.Dapper.DefaultProviders
             }
         }
 
+        public Entities.Client GetById(string clientid)
+        {
+            if (string.IsNullOrWhiteSpace(clientid))
+            {
+                return null;
+            }
+
+            using (var connection = _options.DbProviderFactory.CreateConnection())
+            {
+                connection.ConnectionString = _options.ConnectionString;
+
+                return connection.QueryFirstOrDefault<Entities.Client>("select * from Clients where ClientId = @ClientId", new { ClientId = clientid }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+
+            }
+        }
+
         /// <summary>
         /// add the client to db.
         /// <para>clientid will be checked as unique key.</para> 
@@ -152,7 +170,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
         /// <param name="client"></param>
         public void Add(Client client)
         {
-            var dbclient = FindClientById(client.ClientId);
+            var dbclient = GetById(client.ClientId);
             if (dbclient != null)
             {
                 throw new InvalidOperationException($"you can not add an existed client,clientid={client.ClientId}.");
@@ -166,50 +184,8 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 {
                     try
                     {
-                        var ret = con.Execute("insert into Clients (AbsoluteRefreshTokenLifetime,AccessTokenLifetime,AccessTokenType,AllowAccessTokensViaBrowser,AllowOfflineAccess,AllowPlainTextPkce,AllowRememberConsent,AlwaysIncludeUserClaimsInIdToken,AlwaysSendClientClaims,AuthorizationCodeLifetime,BackChannelLogoutSessionRequired,BackChannelLogoutUri,ClientClaimsPrefix,ClientId,ClientName,ClientUri,ConsentLifetime,Description,EnableLocalLogin,Enabled,FrontChannelLogoutSessionRequired,FrontChannelLogoutUri,IdentityTokenLifetime,IncludeJwtId,LogoUri,PairWiseSubjectSalt,ProtocolType,RefreshTokenExpiration,RefreshTokenUsage,RequireClientSecret,RequireConsent,RequirePkce,SlidingRefreshTokenLifetime,UpdateAccessTokenClaimsOnRefresh) values (@AbsoluteRefreshTokenLifetime,@AccessTokenLifetime,@AccessTokenType,@AllowAccessTokensViaBrowser,@AllowOfflineAccess,@AllowPlainTextPkce,@AllowRememberConsent,@AlwaysIncludeUserClaimsInIdToken,@AlwaysSendClientClaims,@AuthorizationCodeLifetime,@BackChannelLogoutSessionRequired,@BackChannelLogoutUri,@ClientClaimsPrefix,@ClientId,@ClientName,@ClientUri,@ConsentLifetime,@Description,@EnableLocalLogin,@Enabled,@FrontChannelLogoutSessionRequired,@FrontChannelLogoutUri,@IdentityTokenLifetime,@IncludeJwtId,@LogoUri,@PairWiseSubjectSalt,@ProtocolType,@RefreshTokenExpiration,@RefreshTokenUsage,@RequireClientSecret,@RequireConsent,@RequirePkce,@SlidingRefreshTokenLifetime,@UpdateAccessTokenClaimsOnRefresh)", new
-                        {
-                            entity.AbsoluteRefreshTokenLifetime,
-                            entity.AccessTokenLifetime,
-                            entity.AccessTokenType,
-                            entity.AllowAccessTokensViaBrowser,
-                            entity.AllowOfflineAccess,
-                            entity.AllowPlainTextPkce,
-                            entity.AllowRememberConsent,
-                            entity.AlwaysIncludeUserClaimsInIdToken,
-                            entity.AlwaysSendClientClaims,
-                            entity.AuthorizationCodeLifetime,
-                            entity.BackChannelLogoutSessionRequired,
-                            entity.BackChannelLogoutUri,
-                            entity.ClientClaimsPrefix,
-                            entity.ClientId,
-                            entity.ClientName,
-                            entity.ClientUri,
-                            entity.ConsentLifetime,
-                            entity.Description,
-                            entity.EnableLocalLogin,
-                            entity.Enabled,
-                            entity.FrontChannelLogoutSessionRequired,
-                            entity.FrontChannelLogoutUri,
-                            entity.IdentityTokenLifetime,
-                            entity.IncludeJwtId,
-                            entity.LogoUri,
-                            entity.PairWiseSubjectSalt,
-                            entity.ProtocolType,
-                            entity.RefreshTokenExpiration,
-                            entity.RefreshTokenUsage,
-                            entity.RequireClientSecret,
-                            entity.RequireConsent,
-                            entity.RequirePkce,
-                            entity.SlidingRefreshTokenLifetime,
-                            entity.UpdateAccessTokenClaimsOnRefresh
-                        }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
-                        if (ret != 1)
-                        {
-                            throw new Exception($"execute insert error,return values is {ret}");
-                        }
-
-                        var ClientId = con.ExecuteScalar<int>(_options.GetLastInsertID, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
-
+                        var ClientId = con.ExecuteScalar<int>($"insert into Clients (AbsoluteRefreshTokenLifetime,AccessTokenLifetime,AccessTokenType,AllowAccessTokensViaBrowser,AllowOfflineAccess,AllowPlainTextPkce,AllowRememberConsent,AlwaysIncludeUserClaimsInIdToken,AlwaysSendClientClaims,AuthorizationCodeLifetime,BackChannelLogoutSessionRequired,BackChannelLogoutUri,ClientClaimsPrefix,ClientId,ClientName,ClientUri,ConsentLifetime,Description,EnableLocalLogin,Enabled,FrontChannelLogoutSessionRequired,FrontChannelLogoutUri,IdentityTokenLifetime,IncludeJwtId,LogoUri,PairWiseSubjectSalt,ProtocolType,RefreshTokenExpiration,RefreshTokenUsage,RequireClientSecret,RequireConsent,RequirePkce,SlidingRefreshTokenLifetime,UpdateAccessTokenClaimsOnRefresh) values (@AbsoluteRefreshTokenLifetime,@AccessTokenLifetime,@AccessTokenType,@AllowAccessTokensViaBrowser,@AllowOfflineAccess,@AllowPlainTextPkce,@AllowRememberConsent,@AlwaysIncludeUserClaimsInIdToken,@AlwaysSendClientClaims,@AuthorizationCodeLifetime,@BackChannelLogoutSessionRequired,@BackChannelLogoutUri,@ClientClaimsPrefix,@ClientId,@ClientName,@ClientUri,@ConsentLifetime,@Description,@EnableLocalLogin,@Enabled,@FrontChannelLogoutSessionRequired,@FrontChannelLogoutUri,@IdentityTokenLifetime,@IncludeJwtId,@LogoUri,@PairWiseSubjectSalt,@ProtocolType,@RefreshTokenExpiration,@RefreshTokenUsage,@RequireClientSecret,@RequireConsent,@RequirePkce,@SlidingRefreshTokenLifetime,@UpdateAccessTokenClaimsOnRefresh);{_options.GetLastInsertID}", entity, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                        var ret = 0;
                         if (entity.AllowedGrantTypes != null)
                         {
                             foreach (var item in entity.AllowedGrantTypes)
@@ -373,5 +349,157 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 return corsOrigins;
             }
         }
+
+        public IEnumerable<Client> Search(string keywords, int pageIndex, int pageSize, out int totalCount)
+        {
+            using (var connection = _options.DbProviderFactory.CreateConnection())
+            {
+                connection.ConnectionString = _options.ConnectionString;
+
+                DynamicParameters pairs = new DynamicParameters();
+                pairs.Add("keywords", "%" + keywords + "%");
+
+                var countsql = "select count(1) from Clients where ClientId like @keywords or ClientName like @keywords";
+                totalCount = connection.ExecuteScalar<int>(countsql, pairs, commandType: CommandType.Text);
+
+                if (totalCount == 0)
+                {
+                    return null;
+                }
+
+                var clients = connection.Query<Entities.Client>(_options.GetPageQuerySQL("select * from Clients where ClientId like @keywords or ClientName like @keywords", pageIndex, pageSize, totalCount, "", pairs), pairs, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                if (clients != null)
+                {
+                    return clients.Select(c => c.ToModel());
+                }
+                return null;
+            }
+        }
+
+        public void Remove(string clientid)
+        {
+            var cliententity = GetById(clientid);
+            if (cliententity == null)
+            {
+                return;
+            }
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                con.Open();
+                using (var t = con.BeginTransaction())
+                {
+                    try
+                    {
+                        var ret = con.Execute($"delete from Clients where id=@id", new { cliententity.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                        ret = con.Execute("delete from ClientGrantTypes where ClientId=@ClientId;" +
+                            "delete from ClientRedirectUris where ClientId=@ClientId;" +
+                            "delete from ClientPostLoutRedirectUris where ClientId=@ClientId;" +
+                            "delete from ClientScopes where ClientId=@ClientId;" +
+                            "delete from ClientSecrets where ClientId=@ClientId;" +
+                            "delete from ClientClaims where ClientId=@ClientId;" +
+                            "delete from ClientIdPRestrictions where ClientId=@ClientId;" +
+                            "delete from ClientCorsOrigins where ClientId=@ClientId;" +
+                            "delete from ClientProperties where ClientId=@ClientId;", new
+                            {
+                                ClientId = cliententity.Id
+                            }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                        t.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        t.Rollback();
+                        throw ex;
+                    }
+                }
+            }
+        }
+
+        #region 子属性
+        public IEnumerable<Entities.ClientGrantType> GetClientGrantTypeByClientID(int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                return con.Query<Entities.ClientGrantType>("select * from ClientGrantTypes where  ClientId = @ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+            }
+        }
+
+        public IEnumerable<Entities.ClientRedirectUri> GetClientRedirectUriByClientID(int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                return con.Query<Entities.ClientRedirectUri>("select * from ClientRedirectUris where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+            }
+        }
+
+        public IEnumerable<Entities.ClientPostLogoutRedirectUri> GetClientPostLogoutRedirectUriByClientID(int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                return con.Query<Entities.ClientPostLogoutRedirectUri>("select * from ClientPostLoutRedirectUris where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+            }
+        }
+
+        public IEnumerable<Entities.ClientScope> GetClientScopeByClientID(int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                return con.Query<Entities.ClientScope>("select * from ClientScopes where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+            }
+        }
+
+        public IEnumerable<Entities.ClientSecret> GetClientSecretByClientID(int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                return con.Query<Entities.ClientSecret>("select * from ClientSecrets where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+            }
+        }
+        public IEnumerable<Entities.ClientClaim> GetClientClaimByClientID(int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                return con.Query<Entities.ClientClaim>("select * from ClientClaims where ClientId=@ClientId", new
+                {
+                    ClientId = ClientId
+                }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+            }
+        }
+
+        public IEnumerable<Entities.ClientIdPRestriction> GetClientIdPRestrictionByClientID(int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                return con.Query<Entities.ClientIdPRestriction>("select * from ClientIdPRestrictions where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+            }
+        }
+
+        public IEnumerable<Entities.ClientCorsOrigin> GetClientCorsOriginByClientID(int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                return con.Query<Entities.ClientCorsOrigin>("select * from ClientCorsOrigins where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+            }
+        }
+
+        public IEnumerable<Entities.ClientProperty> GetClientPropertyByClientID(int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                return con.Query<Entities.ClientProperty>("select * from ClientProperties where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+            }
+        }
+
+
+        #endregion
     }
 }
