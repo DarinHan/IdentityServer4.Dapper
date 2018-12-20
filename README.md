@@ -5,7 +5,7 @@ IdentityServer4.Dapper is a package that provides the configuration APIs to add 
 You can use all database Dapper supported easily.
 
 by now, we support only mysql and mssql.
-Following is the step for using mysql in your project.
+Following are the steps for using mysql in your project.
 ## Step One:
 find the sql script for create tables identity using.
 move to the SQL directory in src, and you will find subdirctories named by db types.
