@@ -68,7 +68,7 @@ namespace IdentityServer4.Dapper.Host
 
             app.UseStaticFiles();
             app.UseSpaStaticFiles();
-           
+
             app.UseMvc(routes =>
             {
                 routes.MapRoute(
