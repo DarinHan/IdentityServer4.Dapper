@@ -4,7 +4,12 @@ Notoce that, port 7012 has beed setted in package.json at line 31, and Kestrel w
 So to run this demo, please run npm ahead.
 
 ## Step One:
-Go the ClientApp directory and run npm start
-
+Go the ClientApp directory and run 
+```
+npm start
+```
 ## Step Two:
 run the dotnet command
+```
+dotnet run
+```
