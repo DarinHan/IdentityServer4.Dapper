@@ -14,18 +14,17 @@ namespace IdentityServer.Dapper.xUnitTest
 {
     public class xTestDefaultClientProvider
     {
-        private DefaultClientProvider GetDefaultClientProvider()
+        private DefaultClientProvider GetDefaultClientProvider(string sqltype)
         {
-            DBProviderOptions options = IdentityServerDapperDBExtensions.GetDefaultOptions();
-            options.ConnectionString = xTestBase.ConnectionString;
-
-            return new DefaultClientProvider(options, null);
+            return new DefaultClientProvider(xTestBase.GetDBProviderOptions(sqltype), null);
         }
 
-        [Fact]
-        public void TestAdd()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestAdd(string sqltype)
         {
-            var provider = GetDefaultClientProvider();
+            var provider = GetDefaultClientProvider(sqltype);
             string name = $"client{DateTime.Now.ToString("yyyyMMddhhmmss")}";
             provider.Add(new Client
             {
@@ -47,10 +46,12 @@ namespace IdentityServer.Dapper.xUnitTest
             Assert.False(client == null, "add failed");
         }
 
-        [Fact]
-        public void TestRemove()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestRemove(string sqltype)
         {
-            var provider = GetDefaultClientProvider();
+            var provider = GetDefaultClientProvider(sqltype);
             var dbitem = provider.GetById("ClientId");
             if (dbitem == null)
             {
@@ -97,10 +98,12 @@ namespace IdentityServer.Dapper.xUnitTest
 
         }
 
-        [Fact]
-        public void TestQueryAllowedCorsOrigins()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestQueryAllowedCorsOrigins(string sqltype)
         {
-            var provider = GetDefaultClientProvider();
+            var provider = GetDefaultClientProvider(sqltype);
             var entity = provider.GetById("js_oidc");
             if (entity == null)
             {
@@ -143,10 +146,12 @@ namespace IdentityServer.Dapper.xUnitTest
 
         }
 
-        [Fact]
-        public void TestSearch()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestSearch(string sqltype)
         {
-            var provider = GetDefaultClientProvider();
+            var provider = GetDefaultClientProvider(sqltype);
             var dbitem = provider.GetById("js_oauth");
             if (dbitem == null)
             {

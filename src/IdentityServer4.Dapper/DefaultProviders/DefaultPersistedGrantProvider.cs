@@ -312,7 +312,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                     return null;
                 }
 
-                var clients = connection.Query<Entities.PersistedGrant>(_options.GetPageQuerySQL($"select * from persistedgrants where {left}Key{right} like @keywords or ClientId like @keywords or SubjectId like @keywords OR {left}Type{right} like @keywords", pageIndex, pageSize, totalCount, "", pairs), pairs, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                var clients = connection.Query<Entities.PersistedGrant>(_options.GetPageQuerySQL($"select * from persistedgrants where {left}Key{right} like @keywords or ClientId like @keywords or SubjectId like @keywords OR {left}Type{right} like @keywords", pageIndex, pageSize, totalCount, $"order by {left}Key{right}", pairs), pairs, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                 if (clients != null)
                 {
                     return clients.Select(c => c.ToModel());

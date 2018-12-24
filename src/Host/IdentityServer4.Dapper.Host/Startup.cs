@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using IdentityServer4.Dapper.Extensions.MySql;
 using IdentityServer4.Dapper.Extensions;
 
 namespace IdentityServer4.Dapper.Host
@@ -34,7 +35,7 @@ namespace IdentityServer4.Dapper.Host
                 .AddDeveloperSigningCredential()
                 .AddMySQLProvider(option =>
                 {
-                    option.ConnectionString = "server=10.40.0.190;uid=changyin.han;pwd=fjfhhan07;database=identityserver4dev;SslMode=None;";
+                    option.ConnectionString = "server=111.231.100.200;uid=darinhan;pwd=Fjfhhan07@;database=identityserver4;SslMode=None;";
                 })
                 .AddConfigurationStore()
                 .AddOperationalStore(option =>

@@ -14,7 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\IdentityServer4.Dapper.Mysql\IdentityServer4.Dapper.Mysql.csproj" />
+    <ProjectReference Include="..\IdentityServer4.Dapper.MSSql\IdentityServer4.Dapper.MSSql.csproj" />
+    <ProjectReference Include="..\IdentityServer4.Dapper.Mysql\IdentityServer4.Dapper.MySql.csproj" />
     <ProjectReference Include="..\IdentityServer4.Dapper\IdentityServer4.Dapper.csproj" />
   </ItemGroup>
 

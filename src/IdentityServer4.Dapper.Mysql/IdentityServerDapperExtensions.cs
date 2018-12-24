@@ -5,7 +5,7 @@ using MySql.Data;
 using MySql.Data.MySqlClient;
 using System.Linq;
 
-namespace IdentityServer4.Dapper.Extensions
+namespace IdentityServer4.Dapper.Extensions.MySql
 {
     public static class IdentityServerDapperDBExtensions
     {

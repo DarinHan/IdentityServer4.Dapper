@@ -15,18 +15,17 @@ namespace IdentityServer.Dapper.xUnitTest
 {
     public class xTestDefaultIdentityResourceProvider
     {
-        private DefaultIdentityResourceProvider GetDefaultIdentityResourceProvider()
+        private DefaultIdentityResourceProvider GetDefaultIdentityResourceProvider(string sqltype)
         {
-            DBProviderOptions options = IdentityServerDapperDBExtensions.GetDefaultOptions();
-            options.ConnectionString = xTestBase.ConnectionString;
-
-            return new DefaultIdentityResourceProvider(options, null);
+            return new DefaultIdentityResourceProvider(xTestBase.GetDBProviderOptions(sqltype), null);
         }
 
-        [Fact]
-        public void TestAdd()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestAdd(string sqltype)
         {
-            var provider = GetDefaultIdentityResourceProvider();
+            var provider = GetDefaultIdentityResourceProvider(sqltype);
             var openid = new IdentityResources.OpenId()
             {
                 Name = "OpenID",
@@ -43,10 +42,12 @@ namespace IdentityServer.Dapper.xUnitTest
             Assert.False(dbidentity == null);
         }
 
-        [Fact]
-        public void TestAddFindIdentityResourcesByName()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestAddFindIdentityResourcesByName(string sqltype)
         {
-            var provider = GetDefaultIdentityResourceProvider();
+            var provider = GetDefaultIdentityResourceProvider(sqltype);
             var identity = new IdentityResource("custom.profile", new[] { JwtClaimTypes.Name, JwtClaimTypes.Email, "location" });
             var dbidentity = provider.FindIdentityResourcesByName(identity.Name);
             if (dbidentity == null)
@@ -57,10 +58,12 @@ namespace IdentityServer.Dapper.xUnitTest
             Assert.False(dbidentity == null);
         }
 
-        [Fact]
-        public void TestRemove()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestRemove(string sqltype)
         {
-            var provider = GetDefaultIdentityResourceProvider();
+            var provider = GetDefaultIdentityResourceProvider(sqltype);
             var identity = new IdentityResource("TestRemove", new[] { JwtClaimTypes.Name, JwtClaimTypes.Email, "location" });
             var dbidentity = provider.FindIdentityResourcesByName(identity.Name);
             if (dbidentity == null)
@@ -75,10 +78,12 @@ namespace IdentityServer.Dapper.xUnitTest
             Assert.False(claims != null && claims.Count() > 0);
         }
 
-        [Fact]
-        public void TestSearch()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestSearch(string sqltype)
         {
-            var provider = GetDefaultIdentityResourceProvider();
+            var provider = GetDefaultIdentityResourceProvider(sqltype);
             var identity = new IdentityResource("TestSearch", "TestDisplayName", new[] { JwtClaimTypes.Name, JwtClaimTypes.Email, "location" });
             identity.Description = "TestDescription";
             var dbidentity = provider.FindIdentityResourcesByName(identity.Name);

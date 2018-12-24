@@ -125,8 +125,7 @@ CREATE TABLE ClientIdPRestrictions (
 );
 
 
-
-CREATE TABLE ClientPostLoutRedirectUris (
+CREATE TABLE ClientPostLogoutRedirectUris (
     Id int NOT NULL auto_increment,
     ClientId int NOT NULL,
     PostLogoutRedirectUri varcharacter(2000) NOT NULL,
@@ -177,7 +176,7 @@ CREATE TABLE ClientSecrets (
 
 CREATE TABLE IdentityClaims (
     Id int NOT NULL auto_increment,
-    auto_incrementResourceId int NOT NULL,
+    IdentityResourceId int NOT NULL,
     `Type` varcharacter(200) NOT NULL,
     CONSTRAINT PK_auto_incrementClaims PRIMARY KEY (Id)
 );

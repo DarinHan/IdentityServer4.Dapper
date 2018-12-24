@@ -28,7 +28,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             using (var connection = _options.DbProviderFactory.CreateConnection())
             {
                 connection.ConnectionString = _options.ConnectionString;
-                var claims = connection.Query<Entities.IdentityClaim, Entities.IdentityResource, Entities.IdentityClaim>("select * from IdentityClaims claim inner join IdentityResources identity on claim.auto_incrementResourceId = identity.id", (claim, indetity) => { claim.IdentityResource = indetity; return claim; }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                var claims = connection.Query<Entities.IdentityClaim, Entities.IdentityResource, Entities.IdentityClaim>("select * from IdentityClaims claim inner join IdentityResources ic on claim.IdentityResourceId = ic.id", (claim, indetity) => { claim.IdentityResource = indetity; return claim; }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                 var identities = claims?.Select(c => c.IdentityResource).Distinct();
                 if (identities != null)
                 {
@@ -51,7 +51,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             using (var connection = _options.DbProviderFactory.CreateConnection())
             {
                 connection.ConnectionString = _options.ConnectionString;
-                var claims = connection.Query<Entities.IdentityClaim, Entities.IdentityResource, Entities.IdentityClaim>("select * from IdentityClaims claim inner join IdentityResources identity on claim.auto_incrementResourceId = identity.id where identity.Name = @Name", (claim, indetity) => { claim.IdentityResource = indetity; return claim; }, new { Name = name }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                var claims = connection.Query<Entities.IdentityClaim, Entities.IdentityResource, Entities.IdentityClaim>($"select * from IdentityClaims claim inner join IdentityResources ic on claim.IdentityResourceId = ic.id where ic.Name = @Name", (claim, indetity) => { claim.IdentityResource = indetity; return claim; }, new { Name = name }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                 var identities = claims?.Select(c => c.IdentityResource).FirstOrDefault();
                 if (identities != null)
                 {
@@ -66,7 +66,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             using (var connection = _options.DbProviderFactory.CreateConnection())
             {
                 connection.ConnectionString = _options.ConnectionString;
-                return connection.Query<Entities.IdentityClaim>("select claim.* from IdentityClaims claim inner join IdentityResources identity on claim.auto_incrementResourceId = identity.id where identity.Name = @Name",  new { Name = identityName }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                return connection.Query<Entities.IdentityClaim>("select claim.* from IdentityClaims claim inner join IdentityResources ic on claim.IdentityResourceId = ic.id where ic.Name = @Name",  new { Name = identityName }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
             }
         }
 
@@ -101,7 +101,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         parameters.Add($"@Scope{index}", item);
                     }
 
-                    string sql = $"select * from IdentityClaims claim inner join IdentityResources identity on claim.auto_incrementResourceId = identity.id where identity.Name in ({conditions.ToString().TrimEnd(',')})";
+                    string sql = $"select * from IdentityClaims claim inner join IdentityResources ic on claim.IdentityResourceId = ic.id where ic.Name in ({conditions.ToString().TrimEnd(',')})";
 
                     var task = connection.QueryAsync<Entities.IdentityClaim, Entities.IdentityResource, Entities.IdentityClaim>(sql, (claim, indetity) => { claim.IdentityResource = indetity; return claim; }, parameters, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                     while (!task.IsCompleted)
@@ -160,7 +160,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         {
                             foreach (var item in entity.UserClaims)
                             {
-                                ret = con.Execute($"insert into IdentityClaims ({left}auto_incrementResourceId{right},{left}Type{right}) values (@identityResourceid,@Type)", new
+                                ret = con.Execute($"insert into IdentityClaims ({left}IdentityResourceId{right},{left}Type{right}) values (@identityResourceid,@Type)", new
                                 {
                                     identityResourceid,
                                     item.Type
@@ -200,9 +200,9 @@ namespace IdentityServer4.Dapper.DefaultProviders
                     try
                     {
                         var ret = con.Execute($"delete from IdentityResources where id=@id", new { entity.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
-                        ret = con.Execute("delete from IdentityClaims where auto_incrementResourceId=@auto_incrementResourceId;", new
+                        ret = con.Execute("delete from IdentityClaims where IdentityResourceId=@IdentityResourceId;", new
                         {
-                            auto_incrementResourceId = entity.Id
+                            IdentityResourceId = entity.Id
                         }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
                         t.Commit();
                     }

@@ -221,7 +221,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         {
                             foreach (var item in entity.PostLogoutRedirectUris)
                             {
-                                ret = con.Execute("insert into ClientPostLoutRedirectUris (ClientId,PostLogoutRedirectUri) values (@ClientId,@PostLogoutRedirectUri)", new
+                                ret = con.Execute("insert into ClientPostLogoutRedirectUris (ClientId,PostLogoutRedirectUri) values (@ClientId,@PostLogoutRedirectUri)", new
                                 {
                                     ClientId,
                                     item.PostLogoutRedirectUri
@@ -394,7 +394,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                         var ret = con.Execute($"delete from Clients where id=@id", new { cliententity.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
                         ret = con.Execute("delete from ClientGrantTypes where ClientId=@ClientId;" +
                             "delete from ClientRedirectUris where ClientId=@ClientId;" +
-                            "delete from ClientPostLoutRedirectUris where ClientId=@ClientId;" +
+                            "delete from ClientPostLogoutRedirectUris where ClientId=@ClientId;" +
                             "delete from ClientScopes where ClientId=@ClientId;" +
                             "delete from ClientSecrets where ClientId=@ClientId;" +
                             "delete from ClientClaims where ClientId=@ClientId;" +
@@ -439,7 +439,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             using (var con = _options.DbProviderFactory.CreateConnection())
             {
                 con.ConnectionString = _options.ConnectionString;
-                return con.Query<Entities.ClientPostLogoutRedirectUri>("select * from ClientPostLoutRedirectUris where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                return con.Query<Entities.ClientPostLogoutRedirectUri>("select * from ClientPostLogoutRedirectUris where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
             }
         }
 

@@ -14,32 +14,18 @@ namespace IdentityServer.Dapper.xUnitTest
 {
     public class xTestDefaultApiResourceProvider
     {
-
-        private DefaultApiResourceProvider GetDefaultApiResourceProvider()
+        
+        private DefaultApiResourceProvider GetDefaultApiResourceProvider(string sqltype)
         {
-            DBProviderOptions options = IdentityServerDapperDBExtensions.GetDefaultOptions();
-            options.ConnectionString = xTestBase.ConnectionString;
-
-            return new DefaultApiResourceProvider(options, null);
+            return new DefaultApiResourceProvider(xTestBase.GetDBProviderOptions(sqltype), null);
         }
 
-        private void ClearApiResource()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestAddFind(string sqltype)
         {
-            var provider = GetDefaultApiResourceProvider();
-            var lst = provider.FindApiResourcesAll();
-            if (lst != null)
-            {
-                foreach (var item in lst)
-                {
-                    provider.Remove(item.Name);
-                }
-            }
-        }
-
-        [Fact]
-        public void TestAddFind()
-        {
-            var provider = GetDefaultApiResourceProvider();
+            var provider = GetDefaultApiResourceProvider(sqltype);
             string name = $"TestName";
             var dbitem = provider.FindApiResource(name);
             if (dbitem != null)
@@ -58,10 +44,12 @@ namespace IdentityServer.Dapper.xUnitTest
             Assert.False(apiresource == null, "add failed");
         }
 
-        [Fact]
-        public void TestRemove()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestRemove(string sqltype)
         {
-            var provider = GetDefaultApiResourceProvider();
+            var provider = GetDefaultApiResourceProvider(sqltype);
             var apiresouece = provider.FindApiResource("api2");
             if (apiresouece == null)
             {
@@ -108,10 +96,12 @@ namespace IdentityServer.Dapper.xUnitTest
             Assert.False(scopes != null && scopes.Count() > 0, "remove failed");
         }
 
-        [Fact]
-        public void TestFindAll()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestFindAll(string sqltype)
         {
-            var provider = GetDefaultApiResourceProvider();
+            var provider = GetDefaultApiResourceProvider(sqltype);
             var item = provider.FindApiResource("TestDisplayApiResourceName");
             if (item == null)
             {
@@ -128,10 +118,12 @@ namespace IdentityServer.Dapper.xUnitTest
             Assert.False(lstall == null || lstall.Count() == 0, "FindApiResourcesAll failed");
         }
 
-        [Fact]
-        public void TestFindApiResourcesByScope()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestFindApiResourcesByScope(string sqltype)
         {
-            var provider = GetDefaultApiResourceProvider();
+            var provider = GetDefaultApiResourceProvider(sqltype);
             var api = provider.FindApiResource("TestDisplayApiResourceNameScope");
             if (api == null)
             {
@@ -157,10 +149,12 @@ namespace IdentityServer.Dapper.xUnitTest
             Assert.False(defaultapi == null, "TestScopeFailed");
         }
 
-        [Fact]
-        public void TestSearch()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestSearch(string sqltype)
         {
-            var provider = GetDefaultApiResourceProvider();
+            var provider = GetDefaultApiResourceProvider(sqltype);
             string name = "TestSearch";
             var item = provider.FindApiResource(name);
             if (item == null)

@@ -9,27 +9,27 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SQL", "SQL", "{40FFB9E9-D457-40E6-9290-7DC3D8787D2E}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Mysql", "Mysql", "{3C9A2F08-FB76-4B98-904F-4D20E66C09A2}"
-	ProjectSection(SolutionItems) = preProject
-		SQL\Mysql\ConfigurationDb.txt = SQL\Mysql\ConfigurationDb.txt
-		SQL\Mysql\PersistedGrantDb.txt = SQL\Mysql\PersistedGrantDb.txt
-	EndProjectSection
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdentityServer4.Dapper.Mysql", "IdentityServer4.Dapper.Mysql\IdentityServer4.Dapper.Mysql.csproj", "{F92000D5-29F2-4CE8-A849-1466431A92AC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdentityServer4.Dapper.MySql", "IdentityServer4.Dapper.Mysql\IdentityServer4.Dapper.MySql.csproj", "{F92000D5-29F2-4CE8-A849-1466431A92AC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Host", "Host", "{0DFF067E-2AF4-482D-BA55-F0BD0842CC43}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdentityServer4.Dapper.MSSql", "IdentityServer4.Dapper.MSSql\IdentityServer4.Dapper.MSSql.csproj", "{9E621B31-EADB-4D67-8D11-6D58545EC449}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MSsql", "MSsql", "{DF9F9E52-89E6-46C3-9E70-F62A2B67145A}"
-	ProjectSection(SolutionItems) = preProject
-		ConfigurationDb.txt = ConfigurationDb.txt
-		PersistedGrantDb.txt = PersistedGrantDb.txt
-	EndProjectSection
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdentityServer.Dapper.xUnitTest", "IdentityServer.Dapper.xUnitTest\IdentityServer.Dapper.xUnitTest.csproj", "{A7608473-26D2-457C-A31E-CEFE2FC78B04}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdentityServer4.Dapper.Host", "Host\IdentityServer4.Dapper.Host\IdentityServer4.Dapper.Host.csproj", "{3AABE11E-5D02-4C0A-B6B8-C1A4EE48563A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MSsql", "MSsql", "{49628BF1-27F6-4282-8C51-C77170C3398E}"
+	ProjectSection(SolutionItems) = preProject
+		SQL\MSsql\ConfigurationDb.txt = SQL\MSsql\ConfigurationDb.txt
+		SQL\MSsql\PersistedGrantDb.txt = SQL\MSsql\PersistedGrantDb.txt
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Mysql", "Mysql", "{5E826446-A2AD-4160-9347-A84EF750681E}"
+	ProjectSection(SolutionItems) = preProject
+		SQL\Mysql\ConfigurationDb.txt = SQL\Mysql\ConfigurationDb.txt
+		SQL\Mysql\PersistedGrantDb.txt = SQL\Mysql\PersistedGrantDb.txt
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -63,9 +63,9 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{40FFB9E9-D457-40E6-9290-7DC3D8787D2E} = {BA3E0B94-F1C1-4CB7-AF5B-EA29592827B5}
-		{3C9A2F08-FB76-4B98-904F-4D20E66C09A2} = {40FFB9E9-D457-40E6-9290-7DC3D8787D2E}
-		{DF9F9E52-89E6-46C3-9E70-F62A2B67145A} = {40FFB9E9-D457-40E6-9290-7DC3D8787D2E}
 		{3AABE11E-5D02-4C0A-B6B8-C1A4EE48563A} = {0DFF067E-2AF4-482D-BA55-F0BD0842CC43}
+		{49628BF1-27F6-4282-8C51-C77170C3398E} = {40FFB9E9-D457-40E6-9290-7DC3D8787D2E}
+		{5E826446-A2AD-4160-9347-A84EF750681E} = {40FFB9E9-D457-40E6-9290-7DC3D8787D2E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {92668E9B-AE48-496A-AB8F-F9E3F9F47F34}

@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Data.SqlClient;
 
-namespace IdentityServer4.Dapper.Extensions
+namespace IdentityServer4.Dapper.Extensions.MSSql
 {
     public static class IdentityServerDapperDBExtensions
     {
@@ -27,6 +27,8 @@ namespace IdentityServer4.Dapper.Extensions
             options.ColumnProtect.Add("right", "]");
             options.GetPageQuerySQL = (input, pageindex, pagesize, totalcount, orderby, pairs) =>
             {
+                int pagestart = 0;
+                int pageend = 0;
                 string limitsql = string.Empty;
                 if (pagesize > 0)
                 {
@@ -34,24 +36,23 @@ namespace IdentityServer4.Dapper.Extensions
                     {
                         pagesize = totalcount;
                     }
-                    pairs.Add("start", (pageindex - 1) * pagesize);
-                    pairs.Add("size", pagesize);
-                    limitsql = "limit @start,@size";
+                    pagestart = (pageindex - 1) * pagesize + 1;
+                    pageend = pagestart - 1 + pagesize;
                 }
 
-                if (input.IndexOf("order by", StringComparison.CurrentCultureIgnoreCase) >= 0)
+                if (string.IsNullOrWhiteSpace(orderby))
                 {
-                    orderby = "";
-                }
-                else
-                {
-                    if (!string.IsNullOrWhiteSpace(orderby) && orderby.IndexOf("order by", StringComparison.CurrentCultureIgnoreCase) < 0)
-                    {
-                        orderby = "order by " + orderby;
-                    }
+                    orderby = "order by id"; //default 
                 }
 
-                return $"{input} {orderby} {limitsql}";
+                if (!string.IsNullOrWhiteSpace(orderby) && orderby.IndexOf("order by", StringComparison.CurrentCultureIgnoreCase) < 0)
+                {
+                    orderby = "order by " + orderby;
+                }
+
+                input = $"select ROW_NUMBER() over ({orderby}) as rowid,{input.Substring(input.IndexOf("select", StringComparison.CurrentCultureIgnoreCase) + 6)}";
+
+                return $"select * from ({input}) as innertable where rowid between {pagestart} and {pageend};";
             };
             return options;
         }

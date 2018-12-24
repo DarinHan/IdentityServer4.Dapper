@@ -13,17 +13,17 @@ namespace IdentityServer.Dapper.xUnitTest
 {
     public class xTestDefaultPersistedGrantProvider
     {
-        private DefaultPersistedGrantProvider GetDefaultPersistedGrantProvider()
+        private DefaultPersistedGrantProvider GetDefaultPersistedGrantProvider(string sqltype)
         {
-            DBProviderOptions options = IdentityServerDapperDBExtensions.GetDefaultOptions();
-            options.ConnectionString = xTestBase.ConnectionString;
-            return new DefaultPersistedGrantProvider(options, null);
+            return new DefaultPersistedGrantProvider(xTestBase.GetDBProviderOptions(sqltype), null);
         }
 
-        [Fact]
-        public void TestAddUpdateGet()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestAddUpdateGet(string sqltype)
         {
-            var provider = GetDefaultPersistedGrantProvider();
+            var provider = GetDefaultPersistedGrantProvider(sqltype);
             var grant = new PersistedGrant()
             {
                 Key = "TestAddKey",
@@ -50,10 +50,12 @@ namespace IdentityServer.Dapper.xUnitTest
             Assert.False(dbitem == null || dbitem.Expiration.Value.Hour != datetime.Hour || dbitem.Expiration.Value.Minute != datetime.Minute, "Expiration not match");
         }
 
-        [Fact]
-        public void TestGetAll()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestGetAll(string sqltype)
         {
-            var provider = GetDefaultPersistedGrantProvider();
+            var provider = GetDefaultPersistedGrantProvider(sqltype);
             var grant = new PersistedGrant()
             {
                 Key = "TestAddKey",
@@ -81,10 +83,12 @@ namespace IdentityServer.Dapper.xUnitTest
             Assert.False(dbitem == null);
         }
 
-        [Fact]
-        public void TestExpired()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestExpired(string sqltype)
         {
-            var provider = GetDefaultPersistedGrantProvider();
+            var provider = GetDefaultPersistedGrantProvider(sqltype);
             var grant = new PersistedGrant()
             {
                 Key = "TestExpired",
@@ -114,10 +118,12 @@ namespace IdentityServer.Dapper.xUnitTest
             Assert.False(erxpired > 0);
         }
 
-        [Fact]
-        public void TestRemove()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestRemove(string sqltype)
         {
-            var provider = GetDefaultPersistedGrantProvider();
+            var provider = GetDefaultPersistedGrantProvider(sqltype);
             AddRemoveData(provider);
             provider.Remove("TestRemove");
             var removed = provider.Get("TestRemove");
@@ -134,10 +140,12 @@ namespace IdentityServer.Dapper.xUnitTest
             Assert.False(removed != null);
         }
 
-        [Fact]
-        public void TestSearch()
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestSearch(string sqltype)
         {
-            var provider = GetDefaultPersistedGrantProvider();
+            var provider = GetDefaultPersistedGrantProvider(sqltype);
             var grant = new PersistedGrant()
             {
                 Key = "TestSearch",
