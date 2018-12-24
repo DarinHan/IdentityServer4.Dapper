@@ -35,7 +35,7 @@ namespace IdentityServer4.Dapper.Host
                 .AddDeveloperSigningCredential()
                 .AddMySQLProvider(option =>
                 {
-                    option.ConnectionString = "server=111.231.100.200;uid=darinhan;pwd=Fjfhhan07@;database=identityserver4;SslMode=None;";
+                    option.ConnectionString = "server=.;uid=darinhan;pwd=darinhan;database=identityserver4;SslMode=None;";
                 })
                 .AddConfigurationStore()
                 .AddOperationalStore(option =>
