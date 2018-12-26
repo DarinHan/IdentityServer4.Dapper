@@ -15,7 +15,7 @@ move to the Mysql directory, you will find two files which contain the ddl scrip
 Download the dll from nuget.
 what you need to do is download the package Darin.IdentityServer4.Dapper.Mysql from nuget using 
 ```
-Install-Package Darin.IdentityServer4.Dapper.Mysql -Version 1.0.2 
+Install-Package Darin.IdentityServer4.Dapper.Mysql 
 ```
 ## Step Three:
 then using the AddMySQLProvider meth to config the DB Connection, then call the AddConfigurationStore and AddOperationalStore method to config the stores provided in this solution.
