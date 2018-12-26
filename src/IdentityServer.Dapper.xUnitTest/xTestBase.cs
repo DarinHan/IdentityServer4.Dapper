@@ -18,12 +18,12 @@ namespace IdentityServer.Dapper.xUnitTest
             if (type == MySQL)
             {
                 options = MySqlN.IdentityServerDapperDBExtensions.GetDefaultOptions();
-                options.ConnectionString = "server=.;uid=darinhan;pwd=darinhan;database=identityserver4;SslMode=None;";
+                options.ConnectionString = "server=10.40.0.190;uid=changyin.han;pwd=fjfhhan07;database=identityserver4dev;SslMode=None;";
             }
             else if (type == MSSQL)
             {
                 options = MSSqlN.IdentityServerDapperDBExtensions.GetDefaultOptions();
-                options.ConnectionString = "server=.;uid=darinhan;pwd=darinhan;database=identityserver4;";
+                options.ConnectionString = "server=10.40.0.190;uid=sa;pwd=Onesmart190;database=identityserver4;";
             }
 
             return options;

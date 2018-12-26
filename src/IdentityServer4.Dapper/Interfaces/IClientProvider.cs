@@ -12,11 +12,24 @@ namespace IdentityServer4.Dapper.Interfaces
     {
         Client FindClientById(string clientid);
         void Add(Client client);
+
         IEnumerable<string> QueryAllowedCorsOrigins();
 
         IEnumerable<Client> Search(string keywords, int pageIndex, int pageSize, out int totalCount);
 
         void Remove(string clientid);
+
+        void Update(Client client);
+
+        void UpdateGrantTypes(Client client);
+        void UpdateRedirectUris(Client client);
+        void UpdatePostLogoutRedirectUris(Client client);
+        void UpdateScopes(Client client);
+        void UpdateSecrets(Client client);
+        void UpdateClaims(Client client);
+        void UpdateIdPRestrictions(Client client);
+        void UpdateCorsOrigins(Client client);
+        void UpdatePropertys(Client client);
     }
 
 

@@ -16,11 +16,14 @@ namespace IdentityServer4.Dapper.DefaultProviders
     {
         private DBProviderOptions _options;
         private readonly ILogger<DefaultIdentityResourceProvider> _logger;
-
+        private readonly string left;
+        private readonly string right;
         public DefaultIdentityResourceProvider(DBProviderOptions dBProviderOptions, ILogger<DefaultIdentityResourceProvider> logger)
         {
             this._options = dBProviderOptions ?? throw new ArgumentNullException(nameof(dBProviderOptions));
             this._logger = logger;
+            left = _options.ColumnProtect["left"];
+            right = _options.ColumnProtect["right"];
         }
 
         public IEnumerable<IdentityResource> FindIdentityResourcesAll()
@@ -66,8 +69,14 @@ namespace IdentityServer4.Dapper.DefaultProviders
             using (var connection = _options.DbProviderFactory.CreateConnection())
             {
                 connection.ConnectionString = _options.ConnectionString;
-                return connection.Query<Entities.IdentityClaim>("select claim.* from IdentityClaims claim inner join IdentityResources ic on claim.IdentityResourceId = ic.id where ic.Name = @Name",  new { Name = identityName }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                return connection.Query<Entities.IdentityClaim>("select claim.* from IdentityClaims claim inner join IdentityResources ic on claim.IdentityResourceId = ic.id where ic.Name = @Name", new { Name = identityName }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
             }
+        }
+
+        public IEnumerable<Entities.IdentityClaim> GetClaimsByIdentityId(int identityid, IDbConnection con, IDbTransaction t)
+        {
+
+            return con.Query<Entities.IdentityClaim>("select * from IdentityClaims claim where claim.IdentityResourceId = @Id", new { Id = identityid }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
         }
 
         public IEnumerable<IdentityResource> FindIdentityResourcesByScope(IEnumerable<string> scopeNames)
@@ -153,22 +162,12 @@ namespace IdentityServer4.Dapper.DefaultProviders
                             entity.ShowInDiscoveryDocument
                         }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
 
-
-                        var ret = 0;
-
+                        entity.Id = identityResourceid;
                         if (entity.UserClaims != null && entity.UserClaims.Count() > 0)
                         {
                             foreach (var item in entity.UserClaims)
                             {
-                                ret = con.Execute($"insert into IdentityClaims ({left}IdentityResourceId{right},{left}Type{right}) values (@identityResourceid,@Type)", new
-                                {
-                                    identityResourceid,
-                                    item.Type
-                                }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
-                                if (ret != 1)
-                                {
-                                    throw new Exception($"execute insert error,return values is {ret}");
-                                }
+                                InsertApiResourceClaim(item, entity.Id, con, t);
                             }
                         }
 
@@ -199,11 +198,11 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 {
                     try
                     {
-                        var ret = con.Execute($"delete from IdentityResources where id=@id", new { entity.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
-                        ret = con.Execute("delete from IdentityClaims where IdentityResourceId=@IdentityResourceId;", new
+                        var ret = con.Execute("delete from IdentityClaims where IdentityResourceId=@IdentityResourceId;", new
                         {
                             IdentityResourceId = entity.Id
                         }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                        ret = con.Execute($"delete from IdentityResources where id=@id", new { entity.Id }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
                         t.Commit();
                     }
                     catch (Exception ex)
@@ -238,6 +237,96 @@ namespace IdentityServer4.Dapper.DefaultProviders
                     return clients.Select(c => c.ToModel());
                 }
                 return null;
+            }
+        }
+
+        public void Update(IdentityResource identityResource)
+        {
+            var dbitem = GetByName(identityResource.Name);
+            if (dbitem == null)
+            {
+                throw new InvalidOperationException($"could not update IdentityResources for {identityResource.Name} which not exists.");
+            }
+            var entity = identityResource.ToEntity();
+            entity.Id = dbitem.Id;
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                con.Open();
+                using (var t = con.BeginTransaction())
+                {
+                    try
+                    {
+                        var ret = con.Execute($"update IdentityResources set {left}Description{right} = @Description," +
+                            $"DisplayName=@DisplayName," +
+                            $"Enabled=@Enabled," +
+                            $"Emphasize=@Emphasize," +
+                            $"{left}Name{right}=@Name," +
+                            $"Required=@Required," +
+                            $"ShowInDiscoveryDocument=@ShowInDiscoveryDocument where Id=@Id;", entity, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                        UpdateClaims(entity.UserClaims, entity.Id, con, t);
+                        t.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        t.Rollback();
+                        throw ex;
+                    }
+                }
+            }
+
+        }
+
+        public void UpdateClaims(IdentityResource identityResource)
+        {
+            var dbitem = GetByName(identityResource.Name);
+            if (dbitem == null)
+            {
+                throw new InvalidOperationException($"could not update IdentityResources for {identityResource.Name} which not exists.");
+            }
+            var entity = identityResource.ToEntity();
+            entity.Id = dbitem.Id;
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                UpdateClaims(entity.UserClaims, entity.Id, con, null);
+            }
+        }
+
+        private void UpdateClaims(IEnumerable<Entities.IdentityClaim> identityClaims, int identityid, IDbConnection con, IDbTransaction t)
+        {
+            var dbitems = GetClaimsByIdentityId(identityid, con, t);
+            if (dbitems != null)
+            {
+                foreach (var dbitem in dbitems)
+                {
+                    var newclaim = identityClaims.FirstOrDefault(c => c.Type == dbitem.Type);
+                    if (newclaim == null)
+                    {
+                        con.Execute($"delete from IdentityClaims where IdentityResourceId=@IdentityResourceId and {left}Type{right}=@Type;", new
+                        {
+                            IdentityResourceId = identityid,
+                            dbitem.Type
+                        }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                    }
+                }
+            }
+            foreach (var item in identityClaims.Where(c => !dbitems.ToList().Exists(d => d.Type == c.Type)))
+            {
+                InsertApiResourceClaim(item, identityid, con, t);
+            }
+        }
+
+        private void InsertApiResourceClaim(Entities.IdentityClaim item, int identityid, IDbConnection con, IDbTransaction t)
+        {
+            var ret = con.Execute($"insert into IdentityClaims ({left}IdentityResourceId{right},{left}Type{right}) values (@identityResourceid,@Type)", new
+            {
+                identityResourceid = identityid,
+                item.Type
+            }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+            if (ret != 1)
+            {
+                throw new Exception($"execute insert error,return values is {ret}");
             }
         }
     }

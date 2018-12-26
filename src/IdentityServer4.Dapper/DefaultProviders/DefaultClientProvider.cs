@@ -23,7 +23,8 @@ namespace IdentityServer4.Dapper.DefaultProviders
         /// </summary>
         private DBProviderOptions _options;
         private readonly ILogger<DefaultClientProvider> _logger;
-
+        private string left;
+        private string right;
         /// <summary>
         /// default constructor
         /// </summary>
@@ -33,6 +34,8 @@ namespace IdentityServer4.Dapper.DefaultProviders
         {
             this._options = dBProviderOptions ?? throw new ArgumentNullException(nameof(dBProviderOptions));
             this._logger = logger;
+            left = _options.ColumnProtect["left"];
+            right = _options.ColumnProtect["right"];
         }
 
         /// <summary>
@@ -416,89 +419,902 @@ namespace IdentityServer4.Dapper.DefaultProviders
         }
 
         #region 子属性
+        #region ClientGrantType
         public IEnumerable<Entities.ClientGrantType> GetClientGrantTypeByClientID(int ClientId)
         {
             using (var con = _options.DbProviderFactory.CreateConnection())
             {
                 con.ConnectionString = _options.ConnectionString;
-                return con.Query<Entities.ClientGrantType>("select * from ClientGrantTypes where  ClientId = @ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                return GetClientGrantTypeByClientID(ClientId, con, null);
             }
         }
 
+        private IEnumerable<Entities.ClientGrantType> GetClientGrantTypeByClientID(int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            return con.Query<Entities.ClientGrantType>("select * from ClientGrantTypes where  ClientId = @ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+        }
+
+        public void UpdateClientGrantTypeByClientID(IEnumerable<Entities.ClientGrantType> clientGrantTypes, int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                con.Open();
+                var t = con.BeginTransaction();
+
+                try
+                {
+                    UpdateClientGrantTypeByClientID(clientGrantTypes, ClientId, con, t);
+                    t.Commit();
+                }
+                catch (Exception ex)
+                {
+                    t.Rollback();
+                    throw ex;
+                }
+            }
+        }
+
+        private void UpdateClientGrantTypeByClientID(IEnumerable<Entities.ClientGrantType> clientGrantTypes, int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            var dbitems = GetClientGrantTypeByClientID(ClientId, con, t);
+            List<Entities.ClientGrantType> joined = null;
+            List<Entities.ClientGrantType> added = null;
+            if (dbitems != null && dbitems.Count() > 0)
+            {
+                joined = (from a in dbitems
+                          join b in clientGrantTypes
+                          on a.GrantType equals b.GrantType
+                          select a).ToList();
+            }
+            if (joined.IsEmpty())
+            {
+                added = clientGrantTypes.ToList();
+            }
+            else
+            {
+                added = clientGrantTypes.Where(c => !joined.Exists(d => d.GrantType == c.GrantType)).ToList();
+            }
+
+            if (!dbitems.IsEmpty())
+            {
+                var grants = dbitems.Where(c => !joined.Exists(d => d.GrantType == c.GrantType)).Select(c => c.GrantType).ToArray();
+                if (!grants.IsEmpty())
+                {
+                    con.Execute("delete from ClientGrantTypes where  ClientId = @ClientId and GrantType in @GrantTypes", new { ClientId = ClientId, GrantTypes = grants }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                }
+            }
+
+            if (!added.IsEmpty())
+            {
+                DynamicParameters dynamicParameters = new DynamicParameters();
+                System.Text.StringBuilder sql = new System.Text.StringBuilder();
+                int index = 0;
+                foreach (var item in added)
+                {
+                    sql.Append($"insert into ClientGrantTypes (ClientId,GrantType) values (@ClientId{index},@GrantType{index});");
+                    dynamicParameters.Add($"ClientId{index}", ClientId);
+                    dynamicParameters.Add($"GrantType{index}", item.GrantType);
+                    index++;
+                }
+                con.Execute(sql.ToString(), dynamicParameters, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+            }
+
+        }
+        #endregion
+
+        #region ClientRedirectUri
         public IEnumerable<Entities.ClientRedirectUri> GetClientRedirectUriByClientID(int ClientId)
         {
             using (var con = _options.DbProviderFactory.CreateConnection())
             {
                 con.ConnectionString = _options.ConnectionString;
-                return con.Query<Entities.ClientRedirectUri>("select * from ClientRedirectUris where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                return GetClientRedirectUriByClientID(ClientId, con, null);
             }
         }
 
+        public IEnumerable<Entities.ClientRedirectUri> GetClientRedirectUriByClientID(int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            return con.Query<Entities.ClientRedirectUri>("select * from ClientRedirectUris where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+        }
+        public void UpdateClientRedirectUriByClientID(IEnumerable<Entities.ClientRedirectUri> clientRedirectUris, int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                con.Open();
+                var t = con.BeginTransaction();
+
+                try
+                {
+                    UpdateClientRedirectUriByClientID(clientRedirectUris, ClientId, con, t);
+                    t.Commit();
+                }
+                catch (Exception ex)
+                {
+                    t.Rollback();
+                    throw ex;
+                }
+            }
+        }
+
+        private void UpdateClientRedirectUriByClientID(IEnumerable<Entities.ClientRedirectUri> clientRedirectUris, int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            var dbitems = GetClientRedirectUriByClientID(ClientId, con, t);
+            List<Entities.ClientRedirectUri> joined = null;
+            List<Entities.ClientRedirectUri> added = null;
+            if (dbitems != null && dbitems.Count() > 0)
+            {
+                joined = (from a in dbitems
+                          join b in clientRedirectUris
+                          on a.RedirectUri equals b.RedirectUri
+                          select a).ToList();
+            }
+            if (joined.IsEmpty())
+            {
+                added = clientRedirectUris.ToList();
+            }
+            else
+            {
+                added = clientRedirectUris.Where(c => !joined.Exists(d => d.RedirectUri == c.RedirectUri)).ToList();
+            }
+
+            if (!dbitems.IsEmpty())
+            {
+                var grants = dbitems.Where(c => !joined.Exists(d => d.RedirectUri == c.RedirectUri)).Select(c => c.RedirectUri).ToArray();
+                if (!grants.IsEmpty())
+                {
+                    con.Execute("delete from ClientRedirectUris where  ClientId = @ClientId and RedirectUri in @RedirectUris", new { ClientId = ClientId, RedirectUris = grants }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                }
+            }
+
+            if (!added.IsEmpty())
+            {
+                DynamicParameters dynamicParameters = new DynamicParameters();
+                System.Text.StringBuilder sql = new System.Text.StringBuilder();
+                int index = 0;
+                foreach (var item in added)
+                {
+                    sql.Append($"insert into ClientRedirectUris (ClientId,RedirectUri) values (@ClientId{index},@RedirectUri{index});");
+                    dynamicParameters.Add($"ClientId{index}", ClientId);
+                    dynamicParameters.Add($"RedirectUri{index}", item.RedirectUri);
+                    index++;
+                }
+
+                con.Execute(sql.ToString(), dynamicParameters, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+            }
+
+        }
+        #endregion
+
+        #region ClientPostLogoutRedirectUri
         public IEnumerable<Entities.ClientPostLogoutRedirectUri> GetClientPostLogoutRedirectUriByClientID(int ClientId)
         {
             using (var con = _options.DbProviderFactory.CreateConnection())
             {
                 con.ConnectionString = _options.ConnectionString;
-                return con.Query<Entities.ClientPostLogoutRedirectUri>("select * from ClientPostLogoutRedirectUris where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                return GetClientPostLogoutRedirectUriByClientID(ClientId, con, null);
+            }
+        }
+        public IEnumerable<Entities.ClientPostLogoutRedirectUri> GetClientPostLogoutRedirectUriByClientID(int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            return con.Query<Entities.ClientPostLogoutRedirectUri>("select * from ClientPostLogoutRedirectUris where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+        }
+        public void UpdateClientPostLogoutRedirectUriByClientID(IEnumerable<Entities.ClientPostLogoutRedirectUri> clientPostLogoutRedirectUris, int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                con.Open();
+                var t = con.BeginTransaction();
+
+                try
+                {
+                    UpdateClientPostLogoutRedirectUriByClientID(clientPostLogoutRedirectUris, ClientId, con, t);
+                    t.Commit();
+                }
+                catch (Exception ex)
+                {
+                    t.Rollback();
+                    throw ex;
+                }
             }
         }
 
+        private void UpdateClientPostLogoutRedirectUriByClientID(IEnumerable<Entities.ClientPostLogoutRedirectUri> clientPostLogoutRedirectUris, int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            var dbitems = GetClientPostLogoutRedirectUriByClientID(ClientId, con, t);
+            List<Entities.ClientPostLogoutRedirectUri> joined = null;
+            List<Entities.ClientPostLogoutRedirectUri> added = null;
+            if (dbitems != null && dbitems.Count() > 0)
+            {
+                joined = (from a in dbitems
+                          join b in clientPostLogoutRedirectUris
+                          on a.PostLogoutRedirectUri equals b.PostLogoutRedirectUri
+                          select a).ToList();
+            }
+            if (joined.IsEmpty())
+            {
+                added = clientPostLogoutRedirectUris.ToList();
+            }
+            else
+            {
+                added = clientPostLogoutRedirectUris.Where(c => !joined.Exists(d => d.PostLogoutRedirectUri == c.PostLogoutRedirectUri)).ToList();
+            }
+
+            if (!dbitems.IsEmpty())
+            {
+                var grants = dbitems.Where(c => !joined.Exists(d => d.PostLogoutRedirectUri == c.PostLogoutRedirectUri)).Select(c => c.PostLogoutRedirectUri).ToArray();
+                if (!grants.IsEmpty())
+                {
+                    con.Execute("delete from ClientPostLogoutRedirectUris where  ClientId = @ClientId and PostLogoutRedirectUri in @PostLogoutRedirectUris", new { ClientId = ClientId, PostLogoutRedirectUris = grants }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                }
+            }
+
+            if (!added.IsEmpty())
+            {
+                DynamicParameters dynamicParameters = new DynamicParameters();
+                System.Text.StringBuilder sql = new System.Text.StringBuilder();
+                int index = 0;
+                foreach (var item in added)
+                {
+                    sql.Append($"insert into ClientPostLogoutRedirectUris (ClientId,PostLogoutRedirectUri) values (@ClientId{index},@PostLogoutRedirectUri{index});");
+                    dynamicParameters.Add($"ClientId{index}", ClientId);
+                    dynamicParameters.Add($"PostLogoutRedirectUri{index}", item.PostLogoutRedirectUri);
+                    index++;
+                }
+
+                con.Execute(sql.ToString(), dynamicParameters, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+            }
+        }
+        #endregion
+
+        #region ClientScope
         public IEnumerable<Entities.ClientScope> GetClientScopeByClientID(int ClientId)
         {
             using (var con = _options.DbProviderFactory.CreateConnection())
             {
                 con.ConnectionString = _options.ConnectionString;
-                return con.Query<Entities.ClientScope>("select * from ClientScopes where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                return GetClientScopeByClientID(ClientId, con, null);
+            }
+        }
+        public IEnumerable<Entities.ClientScope> GetClientScopeByClientID(int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            return con.Query<Entities.ClientScope>("select * from ClientScopes where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+        }
+        public void UpdateClientScopeByClientID(IEnumerable<Entities.ClientScope> clientScopes, int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                con.Open();
+                var t = con.BeginTransaction();
+
+                try
+                {
+                    UpdateClientScopeByClientID(clientScopes, ClientId, con, t);
+                    t.Commit();
+                }
+                catch (Exception ex)
+                {
+                    t.Rollback();
+                    throw ex;
+                }
             }
         }
 
+        private void UpdateClientScopeByClientID(IEnumerable<Entities.ClientScope> clientScopes, int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            var dbitems = GetClientScopeByClientID(ClientId, con, t);
+            List<Entities.ClientScope> joined = null;
+            List<Entities.ClientScope> added = null;
+            if (dbitems != null && dbitems.Count() > 0)
+            {
+                joined = (from a in dbitems
+                          join b in clientScopes
+                          on a.Scope equals b.Scope
+                          select a).ToList();
+            }
+            if (joined.IsEmpty())
+            {
+                added = clientScopes.ToList();
+            }
+            else
+            {
+                added = clientScopes.Where(c => !joined.Exists(d => d.Scope == c.Scope)).ToList();
+            }
+
+            if (!dbitems.IsEmpty())
+            {
+                var grants = dbitems.Where(c => !joined.Exists(d => d.Scope == c.Scope)).Select(c => c.Scope).ToArray();
+                if (!grants.IsEmpty())
+                {
+                    con.Execute("delete from ClientScopes where  ClientId = @ClientId and Scope in @Scopes;", new { ClientId = ClientId, Scopes = grants }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                }
+            }
+
+            if (!added.IsEmpty())
+            {
+                DynamicParameters dynamicParameters = new DynamicParameters();
+                System.Text.StringBuilder sql = new System.Text.StringBuilder();
+                int index = 0;
+                foreach (var item in added)
+                {
+                    sql.Append($"insert into ClientScopes (ClientId,Scope) values (@ClientId{index},@Scope{index});");
+                    dynamicParameters.Add($"ClientId{index}", ClientId);
+                    dynamicParameters.Add($"Scope{index}", item.Scope);
+                    index++;
+                }
+
+                con.Execute(sql.ToString(), dynamicParameters, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+            }
+        }
+        #endregion
+
+        #region ClientSecretByClientID
         public IEnumerable<Entities.ClientSecret> GetClientSecretByClientID(int ClientId)
         {
             using (var con = _options.DbProviderFactory.CreateConnection())
             {
                 con.ConnectionString = _options.ConnectionString;
-                return con.Query<Entities.ClientSecret>("select * from ClientSecrets where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                return GetClientSecretByClientID(ClientId, con, null);
             }
         }
+        public IEnumerable<Entities.ClientSecret> GetClientSecretByClientID(int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            return con.Query<Entities.ClientSecret>("select * from ClientSecrets where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+        }
+        public void UpdateClientSecretByClientID(IEnumerable<Entities.ClientSecret> clientSecrets, int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                con.Open();
+                var t = con.BeginTransaction();
+
+                try
+                {
+                    UpdateClientSecretByClientID(clientSecrets, ClientId, con, t);
+                    t.Commit();
+                }
+                catch (Exception ex)
+                {
+                    t.Rollback();
+                    throw ex;
+                }
+            }
+        }
+
+        private void UpdateClientSecretByClientID(IEnumerable<Entities.ClientSecret> clientSecrets, int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            var dbitems = GetClientSecretByClientID(ClientId, con, t);
+            List<Entities.ClientSecret> joined = null;
+            List<Entities.ClientSecret> added = null;
+            if (dbitems != null && dbitems.Count() > 0)
+            {
+                joined = (from a in dbitems
+                          join b in clientSecrets
+                          on new { a.Value, a.Type } equals new { b.Value, b.Type }
+                          select a).ToList();
+            }
+            if (joined.IsEmpty())
+            {
+                added = clientSecrets.ToList();
+            }
+            else
+            {
+                added = clientSecrets.Where(c => !joined.Exists(d => d.Value == c.Value && d.Type == c.Type)).ToList();
+            }
+
+            if (!dbitems.IsEmpty())
+            {
+                foreach (var item in dbitems)
+                {
+                    if (!joined.Exists(c => c.Type == item.Type && c.Value == item.Value))
+                    {
+                        con.Execute($"delete from ClientSecrets where ClientId = @ClientId and {left}Value{right} = @Value and {left}Type{right}=@Type;", new { ClientId = ClientId, Value = item.Value, item.Type }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                    }
+                }
+            }
+
+            if (!added.IsEmpty())
+            {
+                DynamicParameters dynamicParameters = new DynamicParameters();
+                System.Text.StringBuilder sql = new System.Text.StringBuilder();
+                int index = 0;
+                foreach (var item in added)
+                {
+                    sql.Append($"insert into ClientSecrets (ClientId,Description,Expiration,Type,Value) values (@ClientId{index},@Description{index},@Expiration{index},@Type{index},@Value{index});");
+                    dynamicParameters.Add($"ClientId{index}", ClientId);
+                    dynamicParameters.Add($"Description{index}", item.Description);
+                    dynamicParameters.Add($"Expiration{index}", item.Expiration);
+                    dynamicParameters.Add($"Type{index}", item.Type);
+                    dynamicParameters.Add($"Value{index}", item.Value);
+                    index++;
+                }
+
+                con.Execute(sql.ToString(), dynamicParameters, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+            }
+        }
+
+        #endregion
+
+        #region ClientClaim
         public IEnumerable<Entities.ClientClaim> GetClientClaimByClientID(int ClientId)
         {
             using (var con = _options.DbProviderFactory.CreateConnection())
             {
                 con.ConnectionString = _options.ConnectionString;
-                return con.Query<Entities.ClientClaim>("select * from ClientClaims where ClientId=@ClientId", new
+                return GetClientClaimByClientID(ClientId, con, null);
+            }
+        }
+        public IEnumerable<Entities.ClientClaim> GetClientClaimByClientID(int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            return con.Query<Entities.ClientClaim>("select * from ClientClaims where ClientId=@ClientId", new
+            {
+                ClientId = ClientId
+            }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+        }
+        public void UpdateClientClaimByClientID(IEnumerable<Entities.ClientClaim> clientClaims, int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                con.Open();
+                var t = con.BeginTransaction();
+
+                try
                 {
-                    ClientId = ClientId
-                }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                    UpdateClientClaimByClientID(clientClaims, ClientId, con, t);
+                    t.Commit();
+                }
+                catch (Exception ex)
+                {
+                    t.Rollback();
+                    throw ex;
+                }
             }
         }
 
+        private void UpdateClientClaimByClientID(IEnumerable<Entities.ClientClaim> clientClaims, int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            var dbitems = GetClientClaimByClientID(ClientId, con, t);
+            List<Entities.ClientClaim> joined = null;
+            List<Entities.ClientClaim> added = null;
+            if (dbitems != null && dbitems.Count() > 0)
+            {
+                joined = (from a in dbitems
+                          join b in clientClaims
+                          on new { a.Value, a.Type } equals new { b.Value, b.Type }
+                          select a).ToList();
+            }
+            if (joined.IsEmpty())
+            {
+                added = clientClaims.ToList();
+            }
+            else
+            {
+                added = clientClaims.Where(c => !joined.Exists(d => d.Value == c.Value && d.Type == c.Type)).ToList();
+            }
+
+            if (!dbitems.IsEmpty())
+            {
+                foreach (var item in dbitems)
+                {
+                    if (!joined.Exists(c => c.Type == item.Type && c.Value == item.Value))
+                    {
+                        con.Execute($"delete from ClientClaims where ClientId = @ClientId and {left}Value{right} = @Value and {left}Type{right}=@Type;", new { ClientId = ClientId, Value = item.Value, item.Type }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                    }
+                }
+            }
+
+            if (!added.IsEmpty())
+            {
+                DynamicParameters dynamicParameters = new DynamicParameters();
+                System.Text.StringBuilder sql = new System.Text.StringBuilder();
+                int index = 0;
+                foreach (var item in added)
+                {
+                    sql.Append($"insert into ClientClaims (ClientId,Type,Value) values (@ClientId{index},@Type{index},@Value{index});");
+                    dynamicParameters.Add($"ClientId{index}", ClientId);
+                    dynamicParameters.Add($"Type{index}", item.Type);
+                    dynamicParameters.Add($"Value{index}", item.Value);
+                    index++;
+                }
+
+                con.Execute(sql.ToString(), dynamicParameters, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+            }
+        }
+        #endregion
+
+        #region ClientIdPRestriction
         public IEnumerable<Entities.ClientIdPRestriction> GetClientIdPRestrictionByClientID(int ClientId)
         {
             using (var con = _options.DbProviderFactory.CreateConnection())
             {
                 con.ConnectionString = _options.ConnectionString;
-                return con.Query<Entities.ClientIdPRestriction>("select * from ClientIdPRestrictions where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                return GetClientIdPRestrictionByClientID(ClientId, con, null);
+            }
+        }
+        public IEnumerable<Entities.ClientIdPRestriction> GetClientIdPRestrictionByClientID(int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            return con.Query<Entities.ClientIdPRestriction>("select * from ClientIdPRestrictions where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+        }
+
+        public void UpdateClientIdPRestrictionByClientID(IEnumerable<Entities.ClientIdPRestriction> clientIdPRestrictions, int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                con.Open();
+                var t = con.BeginTransaction();
+
+                try
+                {
+                    UpdateClientIdPRestrictionByClientID(clientIdPRestrictions, ClientId, con, t);
+                    t.Commit();
+                }
+                catch (Exception ex)
+                {
+                    t.Rollback();
+                    throw ex;
+                }
             }
         }
 
+        private void UpdateClientIdPRestrictionByClientID(IEnumerable<Entities.ClientIdPRestriction> clientIdPRestrictions, int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            var dbitems = GetClientIdPRestrictionByClientID(ClientId, con, t);
+            List<Entities.ClientIdPRestriction> joined = null;
+            List<Entities.ClientIdPRestriction> added = null;
+            if (dbitems != null && dbitems.Count() > 0)
+            {
+                joined = (from a in dbitems
+                          join b in clientIdPRestrictions
+                          on a.Provider equals b.Provider
+                          select a).ToList();
+            }
+            if (joined.IsEmpty())
+            {
+                added = clientIdPRestrictions.ToList();
+            }
+            else
+            {
+                added = clientIdPRestrictions.Where(c => !joined.Exists(d => d.Provider == c.Provider)).ToList();
+            }
+
+            if (!dbitems.IsEmpty())
+            {
+                var grants = dbitems.Where(c => !joined.Exists(d => d.Provider == c.Provider)).Select(c => c.Provider).ToArray();
+                if (!grants.IsEmpty())
+                {
+                    con.Execute("delete from ClientIdPRestrictions where  ClientId = @ClientId and Provider in @Providers", new { ClientId = ClientId, Providers = grants }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                }
+            }
+
+            if (!added.IsEmpty())
+            {
+                DynamicParameters dynamicParameters = new DynamicParameters();
+                System.Text.StringBuilder sql = new System.Text.StringBuilder();
+                int index = 0;
+                foreach (var item in added)
+                {
+                    sql.Append($"insert into ClientIdPRestrictions (ClientId,Provider) values (@ClientId{index},@Provider{index});");
+                    dynamicParameters.Add($"ClientId{index}", ClientId);
+                    dynamicParameters.Add($"Provider{index}", item.Provider);
+                    index++;
+                }
+
+                con.Execute(sql.ToString(), dynamicParameters, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+            }
+        }
+        #endregion
+
+        #region ClientCorsOriginByClientID
         public IEnumerable<Entities.ClientCorsOrigin> GetClientCorsOriginByClientID(int ClientId)
         {
             using (var con = _options.DbProviderFactory.CreateConnection())
             {
                 con.ConnectionString = _options.ConnectionString;
-                return con.Query<Entities.ClientCorsOrigin>("select * from ClientCorsOrigins where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                return GetClientCorsOriginByClientID(ClientId, con, null);
+            }
+        }
+        public IEnumerable<Entities.ClientCorsOrigin> GetClientCorsOriginByClientID(int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            return con.Query<Entities.ClientCorsOrigin>("select * from ClientCorsOrigins where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+        }
+
+        public void UpdateClientCorsOriginByClientID(IEnumerable<Entities.ClientCorsOrigin> clientCorsOrigins, int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                con.Open();
+                var t = con.BeginTransaction();
+
+                try
+                {
+                    UpdateClientCorsOriginByClientID(clientCorsOrigins, ClientId, con, t);
+                    t.Commit();
+                }
+                catch (Exception ex)
+                {
+                    t.Rollback();
+                    throw ex;
+                }
             }
         }
 
+        private void UpdateClientCorsOriginByClientID(IEnumerable<Entities.ClientCorsOrigin> clientCorsOrigins, int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            var dbitems = GetClientCorsOriginByClientID(ClientId, con, t);
+            List<Entities.ClientCorsOrigin> joined = null;
+            List<Entities.ClientCorsOrigin> added = null;
+            if (dbitems != null && dbitems.Count() > 0)
+            {
+                joined = (from a in dbitems
+                          join b in clientCorsOrigins
+                          on a.Origin equals b.Origin
+                          select a).ToList();
+            }
+            if (joined.IsEmpty())
+            {
+                added = clientCorsOrigins.ToList();
+            }
+            else
+            {
+                added = clientCorsOrigins.Where(c => !joined.Exists(d => d.Origin == c.Origin)).ToList();
+            }
+
+            if (!dbitems.IsEmpty())
+            {
+                var grants = dbitems.Where(c => !joined.Exists(d => d.Origin == c.Origin)).Select(c => c.Origin).ToArray();
+                if (!grants.IsEmpty())
+                {
+                    con.Execute("delete from ClientCorsOrigins  where  ClientId = @ClientId and Origin in @Origins", new { ClientId = ClientId, Origins = grants }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                }
+            }
+
+            if (!added.IsEmpty())
+            {
+                DynamicParameters dynamicParameters = new DynamicParameters();
+                System.Text.StringBuilder sql = new System.Text.StringBuilder();
+                int index = 0;
+                foreach (var item in added)
+                {
+                    sql.Append($"insert into ClientCorsOrigins (ClientId,Origin) values (@ClientId{index},@Origin{index});");
+                    dynamicParameters.Add($"ClientId{index}", ClientId);
+                    dynamicParameters.Add($"Origin{index}", item.Origin);
+                    index++;
+                }
+
+                con.Execute(sql.ToString(), dynamicParameters, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+            }
+        }
+        #endregion
+
+        #region ClientProperty
         public IEnumerable<Entities.ClientProperty> GetClientPropertyByClientID(int ClientId)
         {
             using (var con = _options.DbProviderFactory.CreateConnection())
             {
                 con.ConnectionString = _options.ConnectionString;
-                return con.Query<Entities.ClientProperty>("select * from ClientProperties where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                return GetClientPropertyByClientID(ClientId, con, null);
+            }
+        }
+        public IEnumerable<Entities.ClientProperty> GetClientPropertyByClientID(int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            return con.Query<Entities.ClientProperty>("select * from ClientProperties where ClientId=@ClientId", new { ClientId = ClientId }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+        }
+
+        public void UpdateClientPropertyByClientID(IEnumerable<Entities.ClientProperty> clientProperties, int ClientId)
+        {
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                con.Open();
+                var t = con.BeginTransaction();
+
+                try
+                {
+                    UpdateClientPropertyByClientID(clientProperties, ClientId, con, t);
+                    t.Commit();
+                }
+                catch (Exception ex)
+                {
+                    t.Rollback();
+                    throw ex;
+                }
             }
         }
 
+        private void UpdateClientPropertyByClientID(IEnumerable<Entities.ClientProperty> clientProperties, int ClientId, IDbConnection con, IDbTransaction t)
+        {
+            var dbitems = GetClientPropertyByClientID(ClientId, con, t);
+            List<Entities.ClientProperty> joined = null;
+            List<Entities.ClientProperty> added = null;
+            if (dbitems != null && dbitems.Count() > 0)
+            {
+                joined = (from a in dbitems
+                          join b in clientProperties
+                          on new { a.Key, a.Value } equals new { b.Key, b.Value }
+                          select a).ToList();
+            }
+            if (joined.IsEmpty())
+            {
+                added = clientProperties.ToList();
+            }
+            else
+            {
+                added = clientProperties.Where(c => !joined.Exists(d => d.Key == c.Key && d.Value == c.Value)).ToList();
+            }
+
+            if (!dbitems.IsEmpty())
+            {
+                foreach (var item in dbitems)
+                {
+                    if (!joined.Exists(c => c.Key == item.Key && c.Value == item.Value))
+                    {
+                        con.Execute($"delete from ClientProperties where ClientId = @ClientId and {left}Value{right} = @Value and {left}Key{right}=@Key;", new { ClientId = ClientId, Value = item.Value, item.Key }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+                    }
+                }
+            }
+
+            if (!added.IsEmpty())
+            {
+                DynamicParameters dynamicParameters = new DynamicParameters();
+                System.Text.StringBuilder sql = new System.Text.StringBuilder();
+                int index = 0;
+                foreach (var item in added)
+                {
+                    sql.Append($"insert into ClientProperties (ClientId,{left}Key{right},{left}Value{right}) values (@ClientId{index},@Key{index},@Value{index});");
+                    dynamicParameters.Add($"ClientId{index}", ClientId);
+                    dynamicParameters.Add($"Key{index}", item.Key);
+                    dynamicParameters.Add($"Value{index}", item.Value);
+                    index++;
+                }
+
+                con.Execute(sql.ToString(), dynamicParameters, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+            }
+        }
+        #endregion
+
+        public void Update(Client client)
+        {
+            var dbclient = GetById(client.ClientId);
+            if (dbclient == null)
+            {
+                throw new InvalidOperationException($"you can not update an unexisted client,clientid={client.ClientId}.");
+            }
+            var entity = client.ToEntity();
+            entity.Id = dbclient.Id;
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                con.Open();
+                using (var t = con.BeginTransaction())
+                {
+                    try
+                    {
+                        var ret = con.Execute($"update Clients set AbsoluteRefreshTokenLifetime = @AbsoluteRefreshTokenLifetime," +
+                            $"AccessTokenLifetime=@AccessTokenLifetime," +
+                            $"AccessTokenType=@AccessTokenType," +
+                            $"AllowAccessTokensViaBrowser=@AllowAccessTokensViaBrowser," +
+                            $"AllowOfflineAccess=@AllowOfflineAccess," +
+                            $"AllowPlainTextPkce=@AllowPlainTextPkce," +
+                            $"AllowRememberConsent=@AllowRememberConsent," +
+                            $"AlwaysIncludeUserClaimsInIdToken=@AlwaysIncludeUserClaimsInIdToken," +
+                            $"AlwaysSendClientClaims=@AlwaysSendClientClaims," +
+                            $"AuthorizationCodeLifetime=@AuthorizationCodeLifetime," +
+                            $"BackChannelLogoutSessionRequired=@BackChannelLogoutSessionRequired," +
+                            $"BackChannelLogoutUri=@BackChannelLogoutUri," +
+                            $"ClientClaimsPrefix=@ClientClaimsPrefix," +
+                            $"ClientName=@ClientName," +
+                            $"ClientUri=@ClientUri," +
+                            $"ConsentLifetime=@ConsentLifetime," +
+                            $"Description=@Description," +
+                            $"EnableLocalLogin=@EnableLocalLogin," +
+                            $"Enabled=@Enabled," +
+                            $"FrontChannelLogoutSessionRequired=@FrontChannelLogoutSessionRequired," +
+                            $"FrontChannelLogoutUri=@FrontChannelLogoutUri," +
+                            $"IdentityTokenLifetime=@IdentityTokenLifetime," +
+                            $"IncludeJwtId=@IncludeJwtId," +
+                            $"LogoUri=@LogoUri," +
+                            $"PairWiseSubjectSalt=@PairWiseSubjectSalt," +
+                            $"ProtocolType=@ProtocolType," +
+                            $"RefreshTokenExpiration=@RefreshTokenExpiration," +
+                            $"RefreshTokenUsage=@RefreshTokenUsage," +
+                            $"RequireClientSecret=@RequireClientSecret," +
+                            $"RequireConsent=@RequireConsent," +
+                            $"RequirePkce=@RequirePkce," +
+                            $"SlidingRefreshTokenLifetime=@SlidingRefreshTokenLifetime," +
+                            $"UpdateAccessTokenClaimsOnRefresh=@UpdateAccessTokenClaimsOnRefresh where ClientId=@ClientId;", entity, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+
+                        UpdateClientGrantTypeByClientID(entity.AllowedGrantTypes, entity.Id, con, t);
+                        UpdateClientRedirectUriByClientID(entity.RedirectUris, entity.Id, con, t);
+                        UpdateClientPostLogoutRedirectUriByClientID(entity.PostLogoutRedirectUris, entity.Id, con, t);
+                        UpdateClientScopeByClientID(entity.AllowedScopes, entity.Id, con, t);
+                        UpdateClientSecretByClientID(entity.ClientSecrets, entity.Id, con, t);
+                        UpdateClientClaimByClientID(entity.Claims, entity.Id, con, t);
+                        UpdateClientIdPRestrictionByClientID(entity.IdentityProviderRestrictions, entity.Id, con, t);
+                        UpdateClientCorsOriginByClientID(entity.AllowedCorsOrigins, entity.Id, con, t);
+                        UpdateClientPropertyByClientID(entity.Properties, entity.Id, con, t);
+                        t.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        t.Rollback();
+                        throw ex;
+                    }
+                }
+            }
+        }
+
+        private Entities.Client GetClientEntity(Client client)
+        {
+            var dbclient = GetById(client.ClientId);
+            if (dbclient == null)
+            {
+                throw new InvalidOperationException($"you can not update an unexisted client,clientid={client.ClientId}.");
+            }
+            var entity = client.ToEntity();
+            entity.Id = dbclient.Id;
+            return entity;
+        }
+
+        public void UpdateGrantTypes(Client client)
+        {
+            var entity = GetClientEntity(client);
+            UpdateClientGrantTypeByClientID(entity.AllowedGrantTypes, entity.Id);
+        }
+
+        public void UpdateRedirectUris(Client client)
+        {
+            var entity = GetClientEntity(client);
+            UpdateClientRedirectUriByClientID(entity.RedirectUris, entity.Id);
+        }
+
+        public void UpdatePostLogoutRedirectUris(Client client)
+        {
+            var entity = GetClientEntity(client);
+            UpdateClientPostLogoutRedirectUriByClientID(entity.PostLogoutRedirectUris, entity.Id);
+        }
+
+        public void UpdateScopes(Client client)
+        {
+            var entity = GetClientEntity(client);
+            UpdateClientScopeByClientID(entity.AllowedScopes, entity.Id);
+        }
+
+        public void UpdateSecrets(Client client)
+        {
+            var entity = GetClientEntity(client);
+            UpdateClientSecretByClientID(entity.ClientSecrets, entity.Id);
+        }
+
+        public void UpdateClaims(Client client)
+        {
+            var entity = GetClientEntity(client);
+            UpdateClientClaimByClientID(entity.Claims, entity.Id);
+        }
+
+        public void UpdateIdPRestrictions(Client client)
+        {
+            var entity = GetClientEntity(client);
+            UpdateClientIdPRestrictionByClientID(entity.IdentityProviderRestrictions, entity.Id);
+        }
+
+        public void UpdateCorsOrigins(Client client)
+        {
+            var entity = GetClientEntity(client);
+            UpdateClientCorsOriginByClientID(entity.AllowedCorsOrigins, entity.Id);
+        }
+
+        public void UpdatePropertys(Client client)
+        {
+            var entity = GetClientEntity(client);
+            UpdateClientPropertyByClientID(entity.Properties, entity.Id);
+        }
 
         #endregion
     }

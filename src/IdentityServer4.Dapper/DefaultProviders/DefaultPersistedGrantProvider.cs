@@ -208,47 +208,6 @@ namespace IdentityServer4.Dapper.DefaultProviders
             }
         }
 
-        //public void Store(PersistedGrant grant)
-        //{
-        //    var dbgrant = Get(grant.Key);
-        //    if (dbgrant != null)
-        //    {
-        //        throw new InvalidOperationException($"you can not add an existed PersistedGrant,key={grant.Key}.");
-        //    }
-        //    var entity = grant.ToEntity();
-        //    using (var con = _options.DbProviderFactory.CreateConnection())
-        //    {
-        //        con.ConnectionString = _options.ConnectionString;
-        //        con.Open();
-        //        using (var t = con.BeginTransaction())
-        //        {
-        //            try
-        //            {
-        //                var ret = con.Execute($"insert into PersistedGrants ({left}Key{right},ClientId,CreationTime,Data,Expiration,SubjectId,{left}Type{right}) values (@Key,@ClientId,@CreationTime,@Data,@Expiration,@SubjectId,@Type,)", new
-        //                {
-        //                    entity.Key,
-        //                    entity.ClientId,
-        //                    entity.CreationTime,
-        //                    entity.Data,
-        //                    entity.Expiration,
-        //                    entity.SubjectId,
-        //                    entity.Type
-        //                }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
-        //                if (ret != 1)
-        //                {
-        //                    throw new Exception($"execute insert error,return values is {ret}");
-        //                }
-        //                t.Commit();
-        //            }
-        //            catch (Exception ex)
-        //            {
-        //                t.Rollback();
-        //                throw ex;
-        //            }
-        //        }
-        //    }
-        //}
-
         public void Update(PersistedGrant token)
         {
             var dbgrant = Get(token.Key);

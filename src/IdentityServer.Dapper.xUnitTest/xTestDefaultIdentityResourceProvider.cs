@@ -45,6 +45,28 @@ namespace IdentityServer.Dapper.xUnitTest
         [Theory]
         [InlineData(xTestBase.MSSQL)]
         [InlineData(xTestBase.MySQL)]
+        public void TestUpdate(string sqltype)
+        {
+            var provider = GetDefaultIdentityResourceProvider(sqltype);
+            var dbitem = provider.FindIdentityResourcesByName("TestUpdate");
+            if (dbitem != null)
+            {
+                provider.Remove("TestUpdate");
+            }
+
+            provider.Add(new IdentityResource("TestUpdate", new[] { JwtClaimTypes.Name, JwtClaimTypes.Email, "location" }));
+            dbitem = provider.FindIdentityResourcesByName("TestUpdate");
+
+            //UpdateClaims
+            dbitem.UserClaims.Add(JwtClaimTypes.Address);
+            provider.Update(dbitem);
+            dbitem = provider.FindIdentityResourcesByName("TestUpdate");
+            Assert.False(dbitem.UserClaims.FirstOrDefault(c => c == JwtClaimTypes.Address) == null);
+
+        }
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
         public void TestAddFindIdentityResourcesByName(string sqltype)
         {
             var provider = GetDefaultIdentityResourceProvider(sqltype);

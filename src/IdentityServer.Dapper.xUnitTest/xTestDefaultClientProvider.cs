@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using IdentityServer4.Models;
 using IdentityServer4;
 using IdentityServer4.Dapper.Extensions;
+using System.Security.Claims;
 
 namespace IdentityServer.Dapper.xUnitTest
 {
@@ -96,6 +97,130 @@ namespace IdentityServer.Dapper.xUnitTest
             var properties = provider.GetClientPropertyByClientID(entity.Id);
             Assert.False(properties != null && properties.Count() > 0, "remove failed");
 
+        }
+
+        [Theory]
+        [InlineData(xTestBase.MSSQL)]
+        [InlineData(xTestBase.MySQL)]
+        public void TestUpdate(string sqltype)
+        {
+            var provider = GetDefaultClientProvider(sqltype);
+            var dbitem = provider.GetById("TestUpdate");
+            if (dbitem != null)
+            {
+                provider.Remove(dbitem.ClientId);
+            }
+
+            provider.Add(new Client
+            {
+                ClientId = "TestUpdate",
+                ClientName = "MVC Hybrid",
+                ClientUri = "http://identityserver.io",
+                //LogoUri = "https://pbs.twimg.com/profile_images/1612989113/Ki-hanja_400x400.png",
+
+                ClientSecrets =
+                    {
+                        new Secret("secret".Sha256())
+                    },
+
+                AllowedGrantTypes = GrantTypes.Hybrid,
+                AllowAccessTokensViaBrowser = false,
+
+                RedirectUris = { "http://localhost:21402/signin-oidc" },
+                FrontChannelLogoutUri = "http://localhost:21402/signout-oidc",
+                PostLogoutRedirectUris = { "http://localhost:21402/signout-callback-oidc" },
+
+                AllowOfflineAccess = true,
+
+                AllowedScopes =
+                    {
+                        IdentityServerConstants.StandardScopes.OpenId,
+                        IdentityServerConstants.StandardScopes.Profile,
+                        IdentityServerConstants.StandardScopes.Email,
+                        "api1", "api2.read_only"
+                    }
+            });
+            var client = provider.FindClientById("TestUpdate");
+            dbitem = provider.GetById("TestUpdate");
+            client.Description = "Modified Description";
+            provider.Update(client);
+            client = provider.FindClientById("TestUpdate");
+            Assert.False(client.Description != "Modified Description", "update Description failed");
+
+            //UpdateClientGrantTypeByClientID
+            client.AllowedGrantTypes = GrantTypes.ClientCredentials;
+            provider.Update(client);
+            client = provider.FindClientById("TestUpdate");
+            Assert.False(!client.AllowedGrantTypes.Contains(GrantType.ClientCredentials), "update UpdateClientGrantTypeByClientID failed");
+
+            //UpdateClientRedirectUriByClientID
+            client.RedirectUris = new List<string>() { "http://localhost:21402/signin-oidc-2" };
+            provider.Update(client);
+            client = provider.FindClientById("TestUpdate");
+            Assert.False(!client.RedirectUris.Contains("http://localhost:21402/signin-oidc-2"), "update UpdateClientRedirectUriByClientID failed");
+
+            //UpdateClientPostLogoutRedirectUriByClientID
+            client.PostLogoutRedirectUris = new List<string>() { "http://localhost:21402/signout-callback-oidc-2" };
+            provider.Update(client);
+            client = provider.FindClientById("TestUpdate");
+            Assert.False(!client.PostLogoutRedirectUris.Contains("http://localhost:21402/signout-callback-oidc-2"), "update UpdateClientPostLogoutRedirectUriByClientID failed");
+
+            //UpdateClientScopeByClientID
+            client.AllowedScopes = new List<string>()
+                    {
+                        IdentityServerConstants.StandardScopes.OpenId,
+                    };
+            provider.Update(client);
+            client = provider.FindClientById("TestUpdate");
+            Assert.False(!client.AllowedScopes.Contains(IdentityServerConstants.StandardScopes.OpenId), "update UpdateClientScopeByClientID failed");
+            Assert.False(client.AllowedScopes.Contains(IdentityServerConstants.StandardScopes.Email), "update UpdateClientScopeByClientID failed");
+
+            //UpdateClientSecretByClientID
+            client.ClientSecrets = new List<Secret>()
+                    {
+                        new Secret("secret2".Sha256())
+                    };
+            provider.Update(client);
+            client = provider.FindClientById("TestUpdate");
+            Assert.False(client.ClientSecrets.FirstOrDefault(c => c.Value == "secret1".Sha256()) != null, "update UpdateClientSecretByClientID failed");
+            Assert.False(client.ClientSecrets.FirstOrDefault(c => c.Value == "secret2".Sha256()) == null, "update UpdateClientSecretByClientID failed");
+
+            //UpdateClientClaimByClientID
+            client.Claims = new List<Claim>()
+                    {
+                        new Claim("testType","testvalue")
+                    };
+            provider.Update(client);
+            client = provider.FindClientById("TestUpdate");
+            Assert.False(client.Claims.FirstOrDefault(c => c.Type == "testType" && c.Value == "testvalue") == null, "update UpdateClientClaimByClientID failed");
+
+
+            //UpdateClientIdPRestrictionByClientID
+            client.IdentityProviderRestrictions = new List<string>()
+                    {
+                        "TestIdentityProviderRestrictions"
+                    };
+            provider.Update(client);
+            client = provider.FindClientById("TestUpdate");
+            Assert.False(!client.IdentityProviderRestrictions.Contains("TestIdentityProviderRestrictions"), "update UpdateClientIdPRestrictionByClientID failed");
+
+            //UpdateClientCorsOriginByClientID
+            client.AllowedCorsOrigins = new List<string>()
+                    {
+                        "AllowedCorsOrigins"
+                    };
+            provider.Update(client);
+            client = provider.FindClientById("TestUpdate");
+            Assert.False(!client.AllowedCorsOrigins.Contains("AllowedCorsOrigins"), "update UpdateClientCorsOriginByClientID failed");
+
+            //UpdateClientPropertyByClientID
+            client.Properties = new Dictionary<string, string>();
+            client.Properties.Add("TestKey", "TestValue");
+            provider.Update(client);
+            client = provider.FindClientById("TestUpdate");
+            Assert.False(!client.Properties.ContainsKey("TestKey"), "update UpdateClientPropertyByClientID failed");
+            var item = client.Properties.FirstOrDefault(c => c.Key == "TestKey");
+            Assert.False(item.Value != "TestValue", "update UpdateClientPropertyByClientID failed");
         }
 
         [Theory]

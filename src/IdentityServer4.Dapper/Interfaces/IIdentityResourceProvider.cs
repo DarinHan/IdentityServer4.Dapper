@@ -10,6 +10,16 @@ namespace IdentityServer4.Dapper.Interfaces
         IEnumerable<IdentityResource> FindIdentityResourcesByScope(IEnumerable<string> scopeNames);
         IEnumerable<IdentityResource> FindIdentityResourcesAll();
         void Add(IdentityResource identityResource);
+        /// <summary>
+        /// Update IdentityResource and Claims
+        /// </summary>
+        /// <param name="identityResource"></param>
+        void Update(IdentityResource identityResource);
+        /// <summary>
+        /// Update Claims Only
+        /// </summary>
+        /// <param name="identityResource"></param>
+        void UpdateClaims(IdentityResource identityResource);
         IdentityResource FindIdentityResourcesByName(string name);
 
         void Remove(string name);
