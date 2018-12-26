@@ -5,8 +5,8 @@
     <PackageId>Darin.IdentityServer4.Dapper</PackageId>
     <Authors>Darin Han</Authors>
     <Company>Personnal</Company>
-    <Version>1.0.3</Version>
-    <Description>Add CRUD api for clients,resource and resource</Description>
+    <Version>1.0.4</Version>
+    <Description>Add Update API</Description>
   </PropertyGroup>
 
   <ItemGroup>
