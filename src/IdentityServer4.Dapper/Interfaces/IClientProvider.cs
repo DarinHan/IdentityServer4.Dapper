@@ -11,11 +11,15 @@ namespace IdentityServer4.Dapper.Interfaces
     public interface IClientProvider
     {
         Client FindClientById(string clientid);
+        bool Exist(string clientid);
+
         void Add(Client client);
 
         IEnumerable<string> QueryAllowedCorsOrigins();
 
         IEnumerable<Client> Search(string keywords, int pageIndex, int pageSize, out int totalCount);
+
+
 
         void Remove(string clientid);
 

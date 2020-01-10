@@ -4,6 +4,9 @@ using IdentityServer4.Dapper.Options;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace IdentityServer.Dapper.xUnitTest
 {
@@ -27,6 +30,16 @@ namespace IdentityServer.Dapper.xUnitTest
             }
 
             return options;
+        }
+
+        public static IMemoryCache GetMemoryCache()
+        {
+            IServiceCollection services = new ServiceCollection();
+            services.AddMemoryCache();
+
+            var provider = services.BuildServiceProvider();
+            var cache = provider.GetService<IMemoryCache>();
+            return cache;
         }
     }
 }

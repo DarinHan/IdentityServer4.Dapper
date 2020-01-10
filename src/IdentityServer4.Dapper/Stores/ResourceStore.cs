@@ -8,6 +8,7 @@ using IdentityServer4.Models;
 using IdentityServer4.Stores;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace IdentityServer4.Dapper.Stores
 {
@@ -18,12 +19,17 @@ namespace IdentityServer4.Dapper.Stores
         private readonly ILogger<ResourceStore> _logger;
         private readonly IConfiguration _configuration;
 
-        public ResourceStore(IConfiguration configuration, IApiResourceProvider apiResource, IIdentityResourceProvider identityResource, ILogger<ResourceStore> logger)
+        private readonly IMemoryCache _memoryCache;
+
+        private static volatile object locker = new object();
+
+        public ResourceStore(IConfiguration configuration, IApiResourceProvider apiResource, IIdentityResourceProvider identityResource, ILogger<ResourceStore> logger, IMemoryCache memoryCache)
         {
             this._configuration = configuration;
             this._apiResource = apiResource ?? throw new ArgumentNullException(nameof(apiResource));
             this._identityResource = identityResource ?? throw new ArgumentNullException(nameof(identityResource));
             this._logger = logger;
+            this._memoryCache = memoryCache;
         }
 
         public Task<ApiResource> FindApiResourceAsync(string name)

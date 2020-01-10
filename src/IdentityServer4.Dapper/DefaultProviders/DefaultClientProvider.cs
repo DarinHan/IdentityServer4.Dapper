@@ -9,7 +9,8 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
-using Microsoft.Extensions.Caching.Distributed;
+
+using Microsoft.Extensions.Caching.Memory;
 
 namespace IdentityServer4.Dapper.DefaultProviders
 {
@@ -25,146 +26,27 @@ namespace IdentityServer4.Dapper.DefaultProviders
         private readonly ILogger<DefaultClientProvider> _logger;
         private string left;
         private string right;
+
+        private readonly IMemoryCache _memoryCache;
+
+        private static volatile object locker = new object();
+
+
         /// <summary>
         /// default constructor
         /// </summary>
         /// <param name="dBProviderOptions">db config options</param>
         /// <param name="logger">the logger</param>
-        public DefaultClientProvider(DBProviderOptions dBProviderOptions, ILogger<DefaultClientProvider> logger)
+        public DefaultClientProvider(DBProviderOptions dBProviderOptions, ILogger<DefaultClientProvider> logger, IMemoryCache memoryCache)
         {
             this._options = dBProviderOptions ?? throw new ArgumentNullException(nameof(dBProviderOptions));
             this._logger = logger;
+            this._memoryCache = memoryCache;
             left = _options.ColumnProtect["left"];
             right = _options.ColumnProtect["right"];
         }
 
-        /// <summary>
-        /// find client by client id.
-        /// <para>make this method virtual for override in subclass.</para>
-        /// </summary>
-        /// <param name="clientid"></param>
-        /// <returns></returns>
-        public virtual Client FindClientById(string clientid)
-        {
-            var client = GetById(clientid);
-            if (client == null)
-            {
-                return null;
-            }
 
-            using (var connection = _options.DbProviderFactory.CreateConnection())
-            {
-                connection.ConnectionString = _options.ConnectionString;
-
-                if (client != null)
-                {
-                    //do not use the mutiquery in case of some db can not return muti sets
-                    //if you want to redurce the time cost,please recode in your own class which should inherit from IClientProvider or this
-                    var granttypes = GetClientGrantTypeByClientID(client.Id);
-                    var redirecturls = GetClientRedirectUriByClientID(client.Id);
-                    var postlogoutredirecturis = GetClientPostLogoutRedirectUriByClientID(client.Id);
-                    var allowedscopes = GetClientScopeByClientID(client.Id);
-                    var secrets = GetClientSecretByClientID(client.Id);
-                    var claims = GetClientClaimByClientID(client.Id);
-                    var iprestrictions = GetClientIdPRestrictionByClientID(client.Id);
-                    var corsOrigins = GetClientCorsOriginByClientID(client.Id);
-                    var properties = GetClientPropertyByClientID(client.Id);
-
-                    if (granttypes != null)
-                    {
-                        foreach (var item in granttypes)
-                        {
-                            item.Client = client;
-                        }
-                        client.AllowedGrantTypes = granttypes.AsList();
-                    }
-                    if (redirecturls != null)
-                    {
-                        foreach (var item in redirecturls)
-                        {
-                            item.Client = client;
-                        }
-                        client.RedirectUris = redirecturls.AsList();
-                    }
-
-                    if (postlogoutredirecturis != null)
-                    {
-                        foreach (var item in postlogoutredirecturis)
-                        {
-                            item.Client = client;
-                        }
-                        client.PostLogoutRedirectUris = postlogoutredirecturis.AsList();
-                    }
-                    if (allowedscopes != null)
-                    {
-                        foreach (var item in allowedscopes)
-                        {
-                            item.Client = client;
-                        }
-                        client.AllowedScopes = allowedscopes.AsList();
-                    }
-                    if (secrets != null)
-                    {
-                        foreach (var item in secrets)
-                        {
-                            item.Client = client;
-                        }
-                        client.ClientSecrets = secrets.AsList();
-                    }
-                    if (claims != null)
-                    {
-                        foreach (var item in claims)
-                        {
-                            item.Client = client;
-                        }
-                        client.Claims = claims.AsList();
-                    }
-                    if (iprestrictions != null)
-                    {
-                        foreach (var item in iprestrictions)
-                        {
-                            item.Client = client;
-                        }
-                        client.IdentityProviderRestrictions = iprestrictions.AsList();
-                    }
-                    if (corsOrigins != null)
-                    {
-                        foreach (var item in corsOrigins)
-                        {
-                            item.Client = client;
-                        }
-                        client.AllowedCorsOrigins = corsOrigins.AsList();
-                    }
-
-                    if (properties != null)
-                    {
-                        foreach (var item in properties)
-                        {
-                            item.Client = client;
-                        }
-                        client.Properties = properties.AsList();
-                    }
-                }
-
-                return client?.ToModel();
-            }
-        }
-
-        public Entities.Client GetById(string clientid)
-        {
-            if (string.IsNullOrWhiteSpace(clientid))
-            {
-                return null;
-            }
-
-            using (var connection = _options.DbProviderFactory.CreateConnection())
-            {
-                connection.ConnectionString = _options.ConnectionString;
-
-                return connection.QueryFirstOrDefault<Entities.Client>("select * from Clients where ClientId = @ClientId", new { ClientId = clientid }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
-
-            }
-        }
 
         /// <summary>
         /// add the client to db.
@@ -173,7 +55,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
         /// <param name="client"></param>
         public void Add(Client client)
         {
-            var dbclient = GetById(client.ClientId);
+            var dbclient = FindClientById(client.ClientId);
             if (dbclient != null)
             {
                 throw new InvalidOperationException($"you can not add an existed client,clientid={client.ClientId}.");
@@ -343,42 +225,6 @@ namespace IdentityServer4.Dapper.DefaultProviders
             }
         }
 
-        public IEnumerable<string> QueryAllowedCorsOrigins()
-        {
-            using (var connection = _options.DbProviderFactory.CreateConnection())
-            {
-                connection.ConnectionString = _options.ConnectionString;
-                var corsOrigins = connection.Query<string>("select distinct Origin from ClientCorsOrigins where Origin is not null", commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
-                return corsOrigins;
-            }
-        }
-
-        public IEnumerable<Client> Search(string keywords, int pageIndex, int pageSize, out int totalCount)
-        {
-            using (var connection = _options.DbProviderFactory.CreateConnection())
-            {
-                connection.ConnectionString = _options.ConnectionString;
-
-                DynamicParameters pairs = new DynamicParameters();
-                pairs.Add("keywords", "%" + keywords + "%");
-
-                var countsql = "select count(1) from Clients where ClientId like @keywords or ClientName like @keywords";
-                totalCount = connection.ExecuteScalar<int>(countsql, pairs, commandType: CommandType.Text);
-
-                if (totalCount == 0)
-                {
-                    return null;
-                }
-
-                var clients = connection.Query<Entities.Client>(_options.GetPageQuerySQL("select * from Clients where ClientId like @keywords or ClientName like @keywords", pageIndex, pageSize, totalCount, "", pairs), pairs, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
-                if (clients != null)
-                {
-                    return clients.Select(c => c.ToModel());
-                }
-                return null;
-            }
-        }
-
         public void Remove(string clientid)
         {
             var cliententity = GetById(clientid);
@@ -416,7 +262,277 @@ namespace IdentityServer4.Dapper.DefaultProviders
                     }
                 }
             }
+
+            var key = "clients." + clientid;
+            _memoryCache.Remove(key);
+
         }
+
+        public void Update(Client client)
+        {
+            var key = "clients." + client.ClientId;
+
+            var dbclient = FindClientById(client.ClientId);
+            if (dbclient == null)
+            {
+                throw new InvalidOperationException($"you can not update an unexisted client,clientid={client.ClientId}.");
+            }
+            var entity = client.ToEntity();
+            entity.Id = GetById(client.ClientId).Id;
+            using (var con = _options.DbProviderFactory.CreateConnection())
+            {
+                con.ConnectionString = _options.ConnectionString;
+                con.Open();
+                using (var t = con.BeginTransaction())
+                {
+                    try
+                    {
+                        var ret = con.Execute($"update Clients set AbsoluteRefreshTokenLifetime = @AbsoluteRefreshTokenLifetime," +
+                            $"AccessTokenLifetime=@AccessTokenLifetime," +
+                            $"AccessTokenType=@AccessTokenType," +
+                            $"AllowAccessTokensViaBrowser=@AllowAccessTokensViaBrowser," +
+                            $"AllowOfflineAccess=@AllowOfflineAccess," +
+                            $"AllowPlainTextPkce=@AllowPlainTextPkce," +
+                            $"AllowRememberConsent=@AllowRememberConsent," +
+                            $"AlwaysIncludeUserClaimsInIdToken=@AlwaysIncludeUserClaimsInIdToken," +
+                            $"AlwaysSendClientClaims=@AlwaysSendClientClaims," +
+                            $"AuthorizationCodeLifetime=@AuthorizationCodeLifetime," +
+                            $"BackChannelLogoutSessionRequired=@BackChannelLogoutSessionRequired," +
+                            $"BackChannelLogoutUri=@BackChannelLogoutUri," +
+                            $"ClientClaimsPrefix=@ClientClaimsPrefix," +
+                            $"ClientName=@ClientName," +
+                            $"ClientUri=@ClientUri," +
+                            $"ConsentLifetime=@ConsentLifetime," +
+                            $"Description=@Description," +
+                            $"EnableLocalLogin=@EnableLocalLogin," +
+                            $"Enabled=@Enabled," +
+                            $"FrontChannelLogoutSessionRequired=@FrontChannelLogoutSessionRequired," +
+                            $"FrontChannelLogoutUri=@FrontChannelLogoutUri," +
+                            $"IdentityTokenLifetime=@IdentityTokenLifetime," +
+                            $"IncludeJwtId=@IncludeJwtId," +
+                            $"LogoUri=@LogoUri," +
+                            $"PairWiseSubjectSalt=@PairWiseSubjectSalt," +
+                            $"ProtocolType=@ProtocolType," +
+                            $"RefreshTokenExpiration=@RefreshTokenExpiration," +
+                            $"RefreshTokenUsage=@RefreshTokenUsage," +
+                            $"RequireClientSecret=@RequireClientSecret," +
+                            $"RequireConsent=@RequireConsent," +
+                            $"RequirePkce=@RequirePkce," +
+                            $"SlidingRefreshTokenLifetime=@SlidingRefreshTokenLifetime," +
+                            $"UpdateAccessTokenClaimsOnRefresh=@UpdateAccessTokenClaimsOnRefresh where ClientId=@ClientId;", entity, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+
+                        UpdateClientGrantTypeByClientID(entity.AllowedGrantTypes, entity.Id, con, t);
+                        UpdateClientRedirectUriByClientID(entity.RedirectUris, entity.Id, con, t);
+                        UpdateClientPostLogoutRedirectUriByClientID(entity.PostLogoutRedirectUris, entity.Id, con, t);
+                        UpdateClientScopeByClientID(entity.AllowedScopes, entity.Id, con, t);
+                        UpdateClientSecretByClientID(entity.ClientSecrets, entity.Id, con, t);
+                        UpdateClientClaimByClientID(entity.Claims, entity.Id, con, t);
+                        UpdateClientIdPRestrictionByClientID(entity.IdentityProviderRestrictions, entity.Id, con, t);
+                        UpdateClientCorsOriginByClientID(entity.AllowedCorsOrigins, entity.Id, con, t);
+                        UpdateClientPropertyByClientID(entity.Properties, entity.Id, con, t);
+                        t.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        t.Rollback();
+                        throw ex;
+                    }
+                }
+            }
+
+            _memoryCache.Remove(key);
+        }
+
+
+        #region Query
+        /// <summary>
+        /// find client by client id.
+        /// <para>make this method virtual for override in subclass.</para>
+        /// </summary>
+        /// <param name="clientid"></param>
+        /// <returns></returns>
+        public virtual Client FindClientById(string clientid)
+        {
+            var key = "clients." + clientid;
+            var clientmodel = _memoryCache.Get<Client>(key);
+            if (clientmodel == null)
+            {
+                lock (locker)
+                {
+                    clientmodel = _memoryCache.Get<Client>(key);
+                    if (clientmodel != null)
+                    {
+                        return clientmodel;
+                    }
+
+                    var client = GetById(clientid);
+                    if (client == null)
+                    {
+                        return null;
+                    }
+
+                    using (var connection = _options.DbProviderFactory.CreateConnection())
+                    {
+                        connection.ConnectionString = _options.ConnectionString;
+
+                        if (client != null)
+                        {
+                            //do not use the mutiquery in case of some db can not return muti sets
+                            //if you want to redurce the time cost,please recode in your own class which should inherit from IClientProvider or this
+                            var granttypes = GetClientGrantTypeByClientID(client.Id);
+                            var redirecturls = GetClientRedirectUriByClientID(client.Id);
+                            var postlogoutredirecturis = GetClientPostLogoutRedirectUriByClientID(client.Id);
+                            var allowedscopes = GetClientScopeByClientID(client.Id);
+                            var secrets = GetClientSecretByClientID(client.Id);
+                            var claims = GetClientClaimByClientID(client.Id);
+                            var iprestrictions = GetClientIdPRestrictionByClientID(client.Id);
+                            var corsOrigins = GetClientCorsOriginByClientID(client.Id);
+                            var properties = GetClientPropertyByClientID(client.Id);
+
+                            if (granttypes != null)
+                            {
+                                foreach (var item in granttypes)
+                                {
+                                    item.Client = client;
+                                }
+                                client.AllowedGrantTypes = granttypes.AsList();
+                            }
+                            if (redirecturls != null)
+                            {
+                                foreach (var item in redirecturls)
+                                {
+                                    item.Client = client;
+                                }
+                                client.RedirectUris = redirecturls.AsList();
+                            }
+
+                            if (postlogoutredirecturis != null)
+                            {
+                                foreach (var item in postlogoutredirecturis)
+                                {
+                                    item.Client = client;
+                                }
+                                client.PostLogoutRedirectUris = postlogoutredirecturis.AsList();
+                            }
+                            if (allowedscopes != null)
+                            {
+                                foreach (var item in allowedscopes)
+                                {
+                                    item.Client = client;
+                                }
+                                client.AllowedScopes = allowedscopes.AsList();
+                            }
+                            if (secrets != null)
+                            {
+                                foreach (var item in secrets)
+                                {
+                                    item.Client = client;
+                                }
+                                client.ClientSecrets = secrets.AsList();
+                            }
+                            if (claims != null)
+                            {
+                                foreach (var item in claims)
+                                {
+                                    item.Client = client;
+                                }
+                                client.Claims = claims.AsList();
+                            }
+                            if (iprestrictions != null)
+                            {
+                                foreach (var item in iprestrictions)
+                                {
+                                    item.Client = client;
+                                }
+                                client.IdentityProviderRestrictions = iprestrictions.AsList();
+                            }
+                            if (corsOrigins != null)
+                            {
+                                foreach (var item in corsOrigins)
+                                {
+                                    item.Client = client;
+                                }
+                                client.AllowedCorsOrigins = corsOrigins.AsList();
+                            }
+
+                            if (properties != null)
+                            {
+                                foreach (var item in properties)
+                                {
+                                    item.Client = client;
+                                }
+                                client.Properties = properties.AsList();
+                            }
+                        }
+
+                        clientmodel = client?.ToModel();
+                    }
+
+                    _memoryCache.Set<Client>(key, clientmodel, TimeSpan.FromHours(24));
+                }
+            }
+
+            return clientmodel;
+        }
+
+        public bool Exist(string clientid)
+        {
+            var client = FindClientById(clientid);
+            return client != null;
+        }
+
+        public Entities.Client GetById(string clientid)
+        {
+            if (string.IsNullOrWhiteSpace(clientid))
+            {
+                return null;
+            }
+
+            using (var connection = _options.DbProviderFactory.CreateConnection())
+            {
+                connection.ConnectionString = _options.ConnectionString;
+
+                return connection.QueryFirstOrDefault<Entities.Client>("select * from Clients where ClientId = @ClientId", new { ClientId = clientid }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+
+            }
+        }
+        public IEnumerable<string> QueryAllowedCorsOrigins()
+        {
+            using (var connection = _options.DbProviderFactory.CreateConnection())
+            {
+                connection.ConnectionString = _options.ConnectionString;
+                var corsOrigins = connection.Query<string>("select distinct Origin from ClientCorsOrigins where Origin is not null", commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                return corsOrigins;
+            }
+        }
+
+        public IEnumerable<Client> Search(string keywords, int pageIndex, int pageSize, out int totalCount)
+        {
+            using (var connection = _options.DbProviderFactory.CreateConnection())
+            {
+                connection.ConnectionString = _options.ConnectionString;
+
+                DynamicParameters pairs = new DynamicParameters();
+                pairs.Add("keywords", "%" + keywords + "%");
+
+                var countsql = "select count(1) from Clients where ClientId like @keywords or ClientName like @keywords";
+                totalCount = connection.ExecuteScalar<int>(countsql, pairs, commandType: CommandType.Text);
+
+                if (totalCount == 0)
+                {
+                    return null;
+                }
+
+                var clients = connection.Query<Entities.Client>(_options.GetPageQuerySQL("select * from Clients where ClientId like @keywords or ClientName like @keywords", pageIndex, pageSize, totalCount, "", pairs), pairs, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                if (clients != null)
+                {
+                    return clients.Select(c => c.ToModel());
+                }
+                return null;
+            }
+        }
+        #endregion
+
 
         #region 子属性
         #region ClientGrantType
@@ -1179,76 +1295,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
         }
         #endregion
 
-        public void Update(Client client)
-        {
-            var dbclient = GetById(client.ClientId);
-            if (dbclient == null)
-            {
-                throw new InvalidOperationException($"you can not update an unexisted client,clientid={client.ClientId}.");
-            }
-            var entity = client.ToEntity();
-            entity.Id = dbclient.Id;
-            using (var con = _options.DbProviderFactory.CreateConnection())
-            {
-                con.ConnectionString = _options.ConnectionString;
-                con.Open();
-                using (var t = con.BeginTransaction())
-                {
-                    try
-                    {
-                        var ret = con.Execute($"update Clients set AbsoluteRefreshTokenLifetime = @AbsoluteRefreshTokenLifetime," +
-                            $"AccessTokenLifetime=@AccessTokenLifetime," +
-                            $"AccessTokenType=@AccessTokenType," +
-                            $"AllowAccessTokensViaBrowser=@AllowAccessTokensViaBrowser," +
-                            $"AllowOfflineAccess=@AllowOfflineAccess," +
-                            $"AllowPlainTextPkce=@AllowPlainTextPkce," +
-                            $"AllowRememberConsent=@AllowRememberConsent," +
-                            $"AlwaysIncludeUserClaimsInIdToken=@AlwaysIncludeUserClaimsInIdToken," +
-                            $"AlwaysSendClientClaims=@AlwaysSendClientClaims," +
-                            $"AuthorizationCodeLifetime=@AuthorizationCodeLifetime," +
-                            $"BackChannelLogoutSessionRequired=@BackChannelLogoutSessionRequired," +
-                            $"BackChannelLogoutUri=@BackChannelLogoutUri," +
-                            $"ClientClaimsPrefix=@ClientClaimsPrefix," +
-                            $"ClientName=@ClientName," +
-                            $"ClientUri=@ClientUri," +
-                            $"ConsentLifetime=@ConsentLifetime," +
-                            $"Description=@Description," +
-                            $"EnableLocalLogin=@EnableLocalLogin," +
-                            $"Enabled=@Enabled," +
-                            $"FrontChannelLogoutSessionRequired=@FrontChannelLogoutSessionRequired," +
-                            $"FrontChannelLogoutUri=@FrontChannelLogoutUri," +
-                            $"IdentityTokenLifetime=@IdentityTokenLifetime," +
-                            $"IncludeJwtId=@IncludeJwtId," +
-                            $"LogoUri=@LogoUri," +
-                            $"PairWiseSubjectSalt=@PairWiseSubjectSalt," +
-                            $"ProtocolType=@ProtocolType," +
-                            $"RefreshTokenExpiration=@RefreshTokenExpiration," +
-                            $"RefreshTokenUsage=@RefreshTokenUsage," +
-                            $"RequireClientSecret=@RequireClientSecret," +
-                            $"RequireConsent=@RequireConsent," +
-                            $"RequirePkce=@RequirePkce," +
-                            $"SlidingRefreshTokenLifetime=@SlidingRefreshTokenLifetime," +
-                            $"UpdateAccessTokenClaimsOnRefresh=@UpdateAccessTokenClaimsOnRefresh where ClientId=@ClientId;", entity, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
 
-                        UpdateClientGrantTypeByClientID(entity.AllowedGrantTypes, entity.Id, con, t);
-                        UpdateClientRedirectUriByClientID(entity.RedirectUris, entity.Id, con, t);
-                        UpdateClientPostLogoutRedirectUriByClientID(entity.PostLogoutRedirectUris, entity.Id, con, t);
-                        UpdateClientScopeByClientID(entity.AllowedScopes, entity.Id, con, t);
-                        UpdateClientSecretByClientID(entity.ClientSecrets, entity.Id, con, t);
-                        UpdateClientClaimByClientID(entity.Claims, entity.Id, con, t);
-                        UpdateClientIdPRestrictionByClientID(entity.IdentityProviderRestrictions, entity.Id, con, t);
-                        UpdateClientCorsOriginByClientID(entity.AllowedCorsOrigins, entity.Id, con, t);
-                        UpdateClientPropertyByClientID(entity.Properties, entity.Id, con, t);
-                        t.Commit();
-                    }
-                    catch (Exception ex)
-                    {
-                        t.Rollback();
-                        throw ex;
-                    }
-                }
-            }
-        }
 
         private Entities.Client GetClientEntity(Client client)
         {
@@ -1315,6 +1362,8 @@ namespace IdentityServer4.Dapper.DefaultProviders
             var entity = GetClientEntity(client);
             UpdateClientPropertyByClientID(entity.Properties, entity.Id);
         }
+
+
 
         #endregion
     }

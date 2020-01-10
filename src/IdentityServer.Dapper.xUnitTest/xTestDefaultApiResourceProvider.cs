@@ -17,7 +17,7 @@ namespace IdentityServer.Dapper.xUnitTest
 
         private DefaultApiResourceProvider GetDefaultApiResourceProvider(string sqltype)
         {
-            return new DefaultApiResourceProvider(xTestBase.GetDBProviderOptions(sqltype), null);
+            return new DefaultApiResourceProvider(xTestBase.GetDBProviderOptions(sqltype), null, xTestBase.GetMemoryCache());
         }
 
         [Theory]
@@ -181,7 +181,7 @@ namespace IdentityServer.Dapper.xUnitTest
             apiresouece.UserClaims.Remove("TestClaims");
             provider.Update(apiresouece);
             apiresouece = provider.FindApiResource("TestUpdate");
-            Assert.False(apiresouece.UserClaims.FirstOrDefault(c => c == "TestClaims") != null,"remove claims");
+            Assert.False(apiresouece.UserClaims.FirstOrDefault(c => c == "TestClaims") != null, "remove claims");
         }
 
         [Theory]

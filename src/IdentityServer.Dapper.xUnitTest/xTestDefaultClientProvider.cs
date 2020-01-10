@@ -17,7 +17,7 @@ namespace IdentityServer.Dapper.xUnitTest
     {
         private DefaultClientProvider GetDefaultClientProvider(string sqltype)
         {
-            return new DefaultClientProvider(xTestBase.GetDBProviderOptions(sqltype), null);
+            return new DefaultClientProvider(xTestBase.GetDBProviderOptions(sqltype), null, xTestBase.GetMemoryCache());
         }
 
         [Theory]

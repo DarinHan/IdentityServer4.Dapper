@@ -9,6 +9,7 @@ using IdentityServer4.Dapper.Mappers;
 using IdentityServer4.Dapper.Options;
 using IdentityServer4.Models;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace IdentityServer4.Dapper.DefaultProviders
 {
@@ -18,12 +19,17 @@ namespace IdentityServer4.Dapper.DefaultProviders
         private readonly ILogger<DefaultApiResourceProvider> _logger;
         private string left;
         private string right;
-        public DefaultApiResourceProvider(DBProviderOptions dBProviderOptions, ILogger<DefaultApiResourceProvider> logger)
+
+        private readonly IMemoryCache _memoryCache;
+        private static volatile object locker = new object();
+
+        public DefaultApiResourceProvider(DBProviderOptions dBProviderOptions, ILogger<DefaultApiResourceProvider> logger, IMemoryCache cache)
         {
             this._options = dBProviderOptions ?? throw new ArgumentNullException(nameof(dBProviderOptions));
             this._logger = logger;
             left = _options.ColumnProtect["left"];
             right = _options.ColumnProtect["right"];
+            _memoryCache = cache;
         }
 
         #region Query
@@ -34,44 +40,64 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 return null;
             }
 
-            using (var connection = _options.DbProviderFactory.CreateConnection())
+            var key = "apiresource." + name;
+            var apimodel = _memoryCache.Get<ApiResource>(key);
+            if (apimodel == null)
             {
-                connection.ConnectionString = _options.ConnectionString;
-
-                var api = connection.QueryFirstOrDefault<Entities.ApiResource>("select * from ApiResources where Name = @Name", new { Name = name }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
-                if (api != null)
+                lock (locker)
                 {
-                    var secrets = GetSecretByApiResourceId(api.Id);
-                    if (secrets != null)
+                    apimodel = _memoryCache.Get<ApiResource>(key);
+                    if (apimodel != null)
                     {
-                        foreach (var item in secrets)
-                        {
-                            item.ApiResource = api;
-                        }
-                        api.Secrets = secrets.AsList();
+                        return apimodel;
                     }
-                    var scopes = GetScopesByApiResourceId(api.Id);
-                    if (scopes != null)
+                    using (var connection = _options.DbProviderFactory.CreateConnection())
                     {
-                        foreach (var item in scopes)
+                        connection.ConnectionString = _options.ConnectionString;
+
+                        var api = connection.QueryFirstOrDefault<Entities.ApiResource>("select * from ApiResources where Name = @Name", new { Name = name }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                        if (api != null)
                         {
-                            item.ApiResource = api;
+                            var secrets = GetSecretByApiResourceId(api.Id);
+                            if (secrets != null)
+                            {
+                                foreach (var item in secrets)
+                                {
+                                    item.ApiResource = api;
+                                }
+                                api.Secrets = secrets.AsList();
+                            }
+                            var scopes = GetScopesByApiResourceId(api.Id);
+                            if (scopes != null)
+                            {
+                                foreach (var item in scopes)
+                                {
+                                    item.ApiResource = api;
+                                }
+                                api.Scopes = scopes.AsList();
+                            }
+                            var apiclaims = GetClaimsByAPIID(api.Id);
+                            if (apiclaims != null)
+                            {
+                                foreach (var item in apiclaims)
+                                {
+                                    item.ApiResource = api;
+                                }
+                                api.UserClaims = apiclaims.AsList();
+                            }
                         }
-                        api.Scopes = scopes.AsList();
-                    }
-                    var apiclaims = GetClaimsByAPIID(api.Id);
-                    if (apiclaims != null)
-                    {
-                        foreach (var item in apiclaims)
+
+                        apimodel = api?.ToModel();
+
+                        if (apimodel != null)
                         {
-                            item.ApiResource = api;
+                            _memoryCache.Set<ApiResource>(key, apimodel, TimeSpan.FromHours(24));
                         }
-                        api.UserClaims = apiclaims.AsList();
                     }
                 }
-
-                return api?.ToModel();
             }
+
+            return apimodel;
         }
 
         public Entities.ApiResource GetByName(string name)
@@ -226,6 +252,9 @@ namespace IdentityServer4.Dapper.DefaultProviders
                     con.Close();
                 }
             }
+
+            var key = "apiresource." + name;
+            _memoryCache.Remove(key);
         }
         #endregion
 
@@ -260,6 +289,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
         #region Update
         public void Update(ApiResource apiResource)
         {
+
             var dbitem = GetByName(apiResource.Name);
             if (dbitem == null)
             {
@@ -292,6 +322,9 @@ namespace IdentityServer4.Dapper.DefaultProviders
                     }
                 }
             }
+
+            var key = "apiresource." + apiResource.Name;
+            _memoryCache.Remove(key);
         }
         #endregion
 
