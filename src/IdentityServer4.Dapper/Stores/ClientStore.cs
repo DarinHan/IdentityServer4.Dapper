@@ -6,7 +6,7 @@ using IdentityServer4.Dapper.Interfaces;
 using IdentityServer4.Models;
 using IdentityServer4.Stores;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace IdentityServer4.Dapper.Stores
 {
@@ -15,26 +15,26 @@ namespace IdentityServer4.Dapper.Stores
         private readonly IClientProvider _clientDB;
         private readonly ILogger<ClientStore> _logger;
 
-        private readonly IMemoryCache _memoryCache;
+        private readonly IDistributedCache _cache;
 
         private static volatile object locker = new object();
 
-        public ClientStore(IClientProvider client, ILogger<ClientStore> logger, IMemoryCache memoryCache)
+        public ClientStore(IClientProvider client, ILogger<ClientStore> logger, IDistributedCache distributedCache)
         {
             _clientDB = client ?? throw new ArgumentNullException(nameof(client));
             _logger = logger;
-            _memoryCache = memoryCache;
+            _cache = distributedCache;
         }
 
         public Task<Client> FindClientByIdAsync(string clientId)
         {
-            var client = _memoryCache.Get<Client>("clients." + clientId);
+            var client = _cache.Get<Client>("clients." + clientId);
 
             if (client == null)
             {
                 lock (locker)
                 {
-                    client = _memoryCache.Get<Client>("clients." + clientId);
+                    client = _cache.Get<Client>("clients." + clientId);
                     if (client != null)
                     {
                         return Task.FromResult<Client>(client);
@@ -45,7 +45,7 @@ namespace IdentityServer4.Dapper.Stores
 
                     if (client != null)
                     {
-                        _memoryCache.Set<Client>("clients." + clientId, client, TimeSpan.FromMinutes(5));
+                        _cache.Set<Client>("clients." + clientId, client, TimeSpan.FromMinutes(5));
                     }
                 }
             }

@@ -17,7 +17,7 @@ namespace IdentityServer.Dapper.xUnitTest
 
         private DefaultApiResourceProvider GetDefaultApiResourceProvider(string sqltype)
         {
-            return new DefaultApiResourceProvider(xTestBase.GetDBProviderOptions(sqltype), null, xTestBase.GetMemoryCache());
+            return new DefaultApiResourceProvider(xTestBase.GetDBProviderOptions(sqltype), null, xTestBase.GetCache());
         }
 
         [Theory]

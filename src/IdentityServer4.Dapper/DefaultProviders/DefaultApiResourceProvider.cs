@@ -9,7 +9,7 @@ using IdentityServer4.Dapper.Mappers;
 using IdentityServer4.Dapper.Options;
 using IdentityServer4.Models;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace IdentityServer4.Dapper.DefaultProviders
 {
@@ -20,16 +20,16 @@ namespace IdentityServer4.Dapper.DefaultProviders
         private string left;
         private string right;
 
-        private readonly IMemoryCache _memoryCache;
+        private readonly IDistributedCache _cache;
         private static volatile object locker = new object();
 
-        public DefaultApiResourceProvider(DBProviderOptions dBProviderOptions, ILogger<DefaultApiResourceProvider> logger, IMemoryCache cache)
+        public DefaultApiResourceProvider(DBProviderOptions dBProviderOptions, ILogger<DefaultApiResourceProvider> logger, IDistributedCache cache)
         {
             this._options = dBProviderOptions ?? throw new ArgumentNullException(nameof(dBProviderOptions));
             this._logger = logger;
             left = _options.ColumnProtect["left"];
             right = _options.ColumnProtect["right"];
-            _memoryCache = cache;
+            _cache = cache;
         }
 
         #region Query
@@ -41,12 +41,12 @@ namespace IdentityServer4.Dapper.DefaultProviders
             }
 
             var key = "apiresource." + name;
-            var apimodel = _memoryCache.Get<ApiResource>(key);
+            var apimodel = _cache.Get<ApiResource>(key);
             if (apimodel == null)
             {
                 lock (locker)
                 {
-                    apimodel = _memoryCache.Get<ApiResource>(key);
+                    apimodel = _cache.Get<ApiResource>(key);
                     if (apimodel != null)
                     {
                         return apimodel;
@@ -91,7 +91,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
 
                         if (apimodel != null)
                         {
-                            _memoryCache.Set<ApiResource>(key, apimodel, TimeSpan.FromHours(24));
+                            _cache.Set<ApiResource>(key, apimodel, TimeSpan.FromHours(24));
                         }
                     }
                 }
@@ -254,7 +254,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             }
 
             var key = "apiresource." + name;
-            _memoryCache.Remove(key);
+            _cache.Remove(key);
         }
         #endregion
 
@@ -324,7 +324,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             }
 
             var key = "apiresource." + apiResource.Name;
-            _memoryCache.Remove(key);
+            _cache.Remove(key);
         }
         #endregion
 

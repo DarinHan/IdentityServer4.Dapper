@@ -17,7 +17,7 @@ namespace IdentityServer.Dapper.xUnitTest
     {
         private DefaultClientProvider GetDefaultClientProvider(string sqltype)
         {
-            return new DefaultClientProvider(xTestBase.GetDBProviderOptions(sqltype), null, xTestBase.GetMemoryCache());
+            return new DefaultClientProvider(xTestBase.GetDBProviderOptions(sqltype), null, xTestBase.GetCache());
         }
 
         [Theory]
@@ -27,6 +27,9 @@ namespace IdentityServer.Dapper.xUnitTest
         {
             var provider = GetDefaultClientProvider(sqltype);
             string name = $"client{DateTime.Now.ToString("yyyyMMddhhmmss")}";
+
+            provider.Remove(name);
+
             provider.Add(new Client
             {
                 ClientId = name,
@@ -53,7 +56,7 @@ namespace IdentityServer.Dapper.xUnitTest
         public void TestRemove(string sqltype)
         {
             var provider = GetDefaultClientProvider(sqltype);
-            var dbitem = provider.GetById("ClientId");
+            var dbitem = provider.FindClientById("ClientId");
             if (dbitem == null)
             {
                 provider.Add(new Client
@@ -72,29 +75,30 @@ namespace IdentityServer.Dapper.xUnitTest
                     }
                 });
             }
-            var entity = provider.GetById("ClientId");
+            var entity = provider.FindClientById("ClientId");
+            var entityid = provider.GetClientEntityID("ClientId");
             provider.Remove("ClientId");
 
-            dbitem = provider.GetById("ClientId");
-            Assert.False(dbitem != null, "add failed");
+            dbitem = provider.FindClientById("ClientId");
+            Assert.False(dbitem != null, "remove failed");
 
-            var clientGrantTypes = provider.GetClientGrantTypeByClientID(entity.Id);
+            var clientGrantTypes = provider.GetClientGrantTypeByClientID(entityid);
             Assert.False(clientGrantTypes != null && clientGrantTypes.Count() > 0, "remove failed");
-            var redirectUris = provider.GetClientRedirectUriByClientID(entity.Id);
+            var redirectUris = provider.GetClientRedirectUriByClientID(entityid);
             Assert.False(redirectUris != null && redirectUris.Count() > 0, "remove failed");
-            var postLogoutRedirectUris = provider.GetClientPostLogoutRedirectUriByClientID(entity.Id);
+            var postLogoutRedirectUris = provider.GetClientPostLogoutRedirectUriByClientID(entityid);
             Assert.False(postLogoutRedirectUris != null && postLogoutRedirectUris.Count() > 0, "remove failed");
-            var scopes = provider.GetClientScopeByClientID(entity.Id);
+            var scopes = provider.GetClientScopeByClientID(entityid);
             Assert.False(scopes != null && scopes.Count() > 0, "remove failed");
-            var secrets = provider.GetClientSecretByClientID(entity.Id);
+            var secrets = provider.GetClientSecretByClientID(entityid);
             Assert.False(secrets != null && secrets.Count() > 0, "remove failed");
-            var clientClaims = provider.GetClientClaimByClientID(entity.Id);
+            var clientClaims = provider.GetClientClaimByClientID(entityid);
             Assert.False(clientClaims != null && clientClaims.Count() > 0, "remove failed");
-            var restrictions = provider.GetClientIdPRestrictionByClientID(entity.Id);
+            var restrictions = provider.GetClientIdPRestrictionByClientID(entityid);
             Assert.False(restrictions != null && restrictions.Count() > 0, "remove failed");
-            var corsOrigins = provider.GetClientCorsOriginByClientID(entity.Id);
+            var corsOrigins = provider.GetClientCorsOriginByClientID(entityid);
             Assert.False(corsOrigins != null && corsOrigins.Count() > 0, "remove failed");
-            var properties = provider.GetClientPropertyByClientID(entity.Id);
+            var properties = provider.GetClientPropertyByClientID(entityid);
             Assert.False(properties != null && properties.Count() > 0, "remove failed");
 
         }
@@ -105,7 +109,9 @@ namespace IdentityServer.Dapper.xUnitTest
         public void TestUpdate(string sqltype)
         {
             var provider = GetDefaultClientProvider(sqltype);
-            var dbitem = provider.GetById("TestUpdate");
+            provider.Remove("TestUpdate");
+
+            var dbitem = provider.FindClientById("TestUpdate");
             if (dbitem != null)
             {
                 provider.Remove(dbitem.ClientId);
@@ -141,7 +147,6 @@ namespace IdentityServer.Dapper.xUnitTest
                     }
             });
             var client = provider.FindClientById("TestUpdate");
-            dbitem = provider.GetById("TestUpdate");
             client.Description = "Modified Description";
             provider.Update(client);
             client = provider.FindClientById("TestUpdate");
@@ -229,7 +234,7 @@ namespace IdentityServer.Dapper.xUnitTest
         public void TestQueryAllowedCorsOrigins(string sqltype)
         {
             var provider = GetDefaultClientProvider(sqltype);
-            var entity = provider.GetById("js_oidc");
+            var entity = provider.FindClientById("js_oidc");
             if (entity == null)
             {
                 provider.Add(new Client
@@ -277,7 +282,7 @@ namespace IdentityServer.Dapper.xUnitTest
         public void TestSearch(string sqltype)
         {
             var provider = GetDefaultClientProvider(sqltype);
-            var dbitem = provider.GetById("js_oauth");
+            var dbitem = provider.FindClientById("js_oauth");
             if (dbitem == null)
             {
                 provider.Add(new Client

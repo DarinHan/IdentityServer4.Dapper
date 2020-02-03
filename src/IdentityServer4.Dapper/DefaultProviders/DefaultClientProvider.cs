@@ -10,7 +10,7 @@ using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace IdentityServer4.Dapper.DefaultProviders
 {
@@ -27,7 +27,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
         private string left;
         private string right;
 
-        private readonly IMemoryCache _memoryCache;
+        private readonly IDistributedCache _cache;
 
         private static volatile object locker = new object();
 
@@ -37,11 +37,11 @@ namespace IdentityServer4.Dapper.DefaultProviders
         /// </summary>
         /// <param name="dBProviderOptions">db config options</param>
         /// <param name="logger">the logger</param>
-        public DefaultClientProvider(DBProviderOptions dBProviderOptions, ILogger<DefaultClientProvider> logger, IMemoryCache memoryCache)
+        public DefaultClientProvider(DBProviderOptions dBProviderOptions, ILogger<DefaultClientProvider> logger, IDistributedCache distributedCache)
         {
             this._options = dBProviderOptions ?? throw new ArgumentNullException(nameof(dBProviderOptions));
             this._logger = logger;
-            this._memoryCache = memoryCache;
+            this._cache = distributedCache;
             left = _options.ColumnProtect["left"];
             right = _options.ColumnProtect["right"];
         }
@@ -264,7 +264,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             }
 
             var key = "clients." + clientid;
-            _memoryCache.Remove(key);
+            _cache.Remove(key);
 
         }
 
@@ -340,7 +340,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 }
             }
 
-            _memoryCache.Remove(key);
+            _cache.Remove(key);
         }
 
 
@@ -353,20 +353,26 @@ namespace IdentityServer4.Dapper.DefaultProviders
         /// <returns></returns>
         public virtual Client FindClientById(string clientid)
         {
+            var entity = FindClientEntity(clientid);
+            return entity?.ToModel();
+        }
+
+        private Entities.Client FindClientEntity(string clientid)
+        {
             var key = "clients." + clientid;
-            var clientmodel = _memoryCache.Get<Client>(key);
-            if (clientmodel == null)
+            var cliententity = _cache.Get<Entities.Client>(key);
+            if (cliententity == null)
             {
                 lock (locker)
                 {
-                    clientmodel = _memoryCache.Get<Client>(key);
-                    if (clientmodel != null)
+                    cliententity = _cache.Get<Entities.Client>(key);
+                    if (cliententity != null)
                     {
-                        return clientmodel;
+                        return cliententity;
                     }
 
-                    var client = GetById(clientid);
-                    if (client == null)
+                    cliententity = GetById(clientid);
+                    if (cliententity == null)
                     {
                         return null;
                     }
@@ -375,104 +381,107 @@ namespace IdentityServer4.Dapper.DefaultProviders
                     {
                         connection.ConnectionString = _options.ConnectionString;
 
-                        if (client != null)
+                        if (cliententity != null)
                         {
                             //do not use the mutiquery in case of some db can not return muti sets
                             //if you want to redurce the time cost,please recode in your own class which should inherit from IClientProvider or this
-                            var granttypes = GetClientGrantTypeByClientID(client.Id);
-                            var redirecturls = GetClientRedirectUriByClientID(client.Id);
-                            var postlogoutredirecturis = GetClientPostLogoutRedirectUriByClientID(client.Id);
-                            var allowedscopes = GetClientScopeByClientID(client.Id);
-                            var secrets = GetClientSecretByClientID(client.Id);
-                            var claims = GetClientClaimByClientID(client.Id);
-                            var iprestrictions = GetClientIdPRestrictionByClientID(client.Id);
-                            var corsOrigins = GetClientCorsOriginByClientID(client.Id);
-                            var properties = GetClientPropertyByClientID(client.Id);
+                            var granttypes = GetClientGrantTypeByClientID(cliententity.Id);
+                            var redirecturls = GetClientRedirectUriByClientID(cliententity.Id);
+                            var postlogoutredirecturis = GetClientPostLogoutRedirectUriByClientID(cliententity.Id);
+                            var allowedscopes = GetClientScopeByClientID(cliententity.Id);
+                            var secrets = GetClientSecretByClientID(cliententity.Id);
+                            var claims = GetClientClaimByClientID(cliententity.Id);
+                            var iprestrictions = GetClientIdPRestrictionByClientID(cliententity.Id);
+                            var corsOrigins = GetClientCorsOriginByClientID(cliententity.Id);
+                            var properties = GetClientPropertyByClientID(cliententity.Id);
 
                             if (granttypes != null)
                             {
                                 foreach (var item in granttypes)
                                 {
-                                    item.Client = client;
+                                    item.Client = cliententity;
                                 }
-                                client.AllowedGrantTypes = granttypes.AsList();
+                                cliententity.AllowedGrantTypes = granttypes.AsList();
                             }
                             if (redirecturls != null)
                             {
                                 foreach (var item in redirecturls)
                                 {
-                                    item.Client = client;
+                                    item.Client = cliententity;
                                 }
-                                client.RedirectUris = redirecturls.AsList();
+                                cliententity.RedirectUris = redirecturls.AsList();
                             }
 
                             if (postlogoutredirecturis != null)
                             {
                                 foreach (var item in postlogoutredirecturis)
                                 {
-                                    item.Client = client;
+                                    item.Client = cliententity;
                                 }
-                                client.PostLogoutRedirectUris = postlogoutredirecturis.AsList();
+                                cliententity.PostLogoutRedirectUris = postlogoutredirecturis.AsList();
                             }
                             if (allowedscopes != null)
                             {
                                 foreach (var item in allowedscopes)
                                 {
-                                    item.Client = client;
+                                    item.Client = cliententity;
                                 }
-                                client.AllowedScopes = allowedscopes.AsList();
+                                cliententity.AllowedScopes = allowedscopes.AsList();
                             }
                             if (secrets != null)
                             {
                                 foreach (var item in secrets)
                                 {
-                                    item.Client = client;
+                                    item.Client = cliententity;
                                 }
-                                client.ClientSecrets = secrets.AsList();
+                                cliententity.ClientSecrets = secrets.AsList();
                             }
                             if (claims != null)
                             {
                                 foreach (var item in claims)
                                 {
-                                    item.Client = client;
+                                    item.Client = cliententity;
                                 }
-                                client.Claims = claims.AsList();
+                                cliententity.Claims = claims.AsList();
                             }
                             if (iprestrictions != null)
                             {
                                 foreach (var item in iprestrictions)
                                 {
-                                    item.Client = client;
+                                    item.Client = cliententity;
                                 }
-                                client.IdentityProviderRestrictions = iprestrictions.AsList();
+                                cliententity.IdentityProviderRestrictions = iprestrictions.AsList();
                             }
                             if (corsOrigins != null)
                             {
                                 foreach (var item in corsOrigins)
                                 {
-                                    item.Client = client;
+                                    item.Client = cliententity;
                                 }
-                                client.AllowedCorsOrigins = corsOrigins.AsList();
+                                cliententity.AllowedCorsOrigins = corsOrigins.AsList();
                             }
 
                             if (properties != null)
                             {
                                 foreach (var item in properties)
                                 {
-                                    item.Client = client;
+                                    item.Client = cliententity;
                                 }
-                                client.Properties = properties.AsList();
+                                cliententity.Properties = properties.AsList();
                             }
                         }
-
-                        clientmodel = client?.ToModel();
+                        _cache.Set(key, cliententity, TimeSpan.FromHours(24));
                     }
-
-                    _memoryCache.Set<Client>(key, clientmodel, TimeSpan.FromHours(24));
                 }
             }
+            return cliententity;
+        }
 
-            return clientmodel;
+
+        public int GetClientEntityID(string clientid)
+        {
+            var entity = FindClientEntity(clientid);
+            return entity.Id;
         }
 
         public bool Exist(string clientid)
@@ -481,7 +490,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             return client != null;
         }
 
-        public Entities.Client GetById(string clientid)
+        private Entities.Client GetById(string clientid)
         {
             if (string.IsNullOrWhiteSpace(clientid))
             {
