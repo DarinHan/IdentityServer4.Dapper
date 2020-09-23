@@ -23,6 +23,7 @@ namespace IdentityServer.Dapper.xUnitTest
         [Theory]
         [InlineData(xTestBase.MSSQL)]
         [InlineData(xTestBase.MySQL)]
+        [InlineData(xTestBase.PostgreSQL)]
         public void TestAddFind(string sqltype)
         {
             var provider = GetDefaultApiResourceProvider(sqltype);
@@ -47,6 +48,7 @@ namespace IdentityServer.Dapper.xUnitTest
         [Theory]
         [InlineData(xTestBase.MSSQL)]
         [InlineData(xTestBase.MySQL)]
+        [InlineData(xTestBase.PostgreSQL)]
         public void TestRemove(string sqltype)
         {
             var provider = GetDefaultApiResourceProvider(sqltype);
@@ -99,6 +101,7 @@ namespace IdentityServer.Dapper.xUnitTest
         [Theory]
         [InlineData(xTestBase.MSSQL)]
         [InlineData(xTestBase.MySQL)]
+        [InlineData(xTestBase.PostgreSQL)]
         public void TestUpdate(string sqltype)
         {
             var provider = GetDefaultApiResourceProvider(sqltype);
@@ -187,6 +190,7 @@ namespace IdentityServer.Dapper.xUnitTest
         [Theory]
         [InlineData(xTestBase.MSSQL)]
         [InlineData(xTestBase.MySQL)]
+        [InlineData(xTestBase.PostgreSQL)]
         public void TestFindAll(string sqltype)
         {
             var provider = GetDefaultApiResourceProvider(sqltype);
@@ -209,6 +213,7 @@ namespace IdentityServer.Dapper.xUnitTest
         [Theory]
         [InlineData(xTestBase.MSSQL)]
         [InlineData(xTestBase.MySQL)]
+        [InlineData(xTestBase.PostgreSQL)]
         public void TestFindApiResourcesByScope(string sqltype)
         {
             var provider = GetDefaultApiResourceProvider(sqltype);
@@ -240,6 +245,7 @@ namespace IdentityServer.Dapper.xUnitTest
         [Theory]
         [InlineData(xTestBase.MSSQL)]
         [InlineData(xTestBase.MySQL)]
+        [InlineData(xTestBase.PostgreSQL)]
         public void TestSearch(string sqltype)
         {
             var provider = GetDefaultApiResourceProvider(sqltype);

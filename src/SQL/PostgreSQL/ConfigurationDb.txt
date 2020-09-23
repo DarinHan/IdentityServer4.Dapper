@@ -1,0 +1,175 @@
+﻿-- for mysql
+
+CREATE TABLE ApiResources (
+    Id SERIAL PRIMARY KEY,
+    Description varchar(1000) NULL,
+    DisplayName varchar(200) NULL,
+    Enabled bool NOT NULL,
+    Name varchar(200) NOT NULL
+);
+
+
+CREATE TABLE Clients (
+    Id SERIAL primary key,
+    AbsoluteRefreshTokenLifetime int NOT NULL,
+    AccessTokenLifetime int NOT NULL,
+    AccessTokenType int NOT NULL,
+    AllowAccessTokensViaBrowser bool NOT NULL,
+    AllowOfflineAccess bool NOT NULL,
+    AllowPlainTextPkce bool NOT NULL,
+    AllowRememberConsent bool NOT NULL,
+    AlwaysIncludeUserClaimsInIdToken bool NOT NULL,
+    AlwaysSendClientClaims bool NOT NULL,
+    AuthorizationCodeLifetime int NOT NULL,
+    BackChannelLogoutSessionRequired bool NOT NULL,
+    BackChannelLogoutUri varchar(2000) NULL,
+    ClientClaimsPrefix varchar(200) NULL,
+    ClientId varchar(200) NOT NULL,
+    ClientName varchar(200) NULL,
+    ClientUri varchar(2000) NULL,
+    ConsentLifetime int NULL,
+    Description varchar(1000) NULL,
+    EnableLocalLogin bool NOT NULL,
+    Enabled bool NOT NULL,
+    FrontChannelLogoutSessionRequired bool NOT NULL,
+    FrontChannelLogoutUri varchar(2000) NULL,
+    IdentityTokenLifetime int NOT NULL,
+    IncludeJwtId bool NOT NULL,
+    LogoUri varchar(2000) NULL,
+    PairWiseSubjectSalt varchar(200) NULL,
+    ProtocolType varchar(200) NOT NULL,
+    RefreshTokenExpiration int NOT NULL,
+    RefreshTokenUsage int NOT NULL,
+    RequireClientSecret bool NOT NULL,
+    RequireConsent bool NOT NULL,
+    RequirePkce bool NOT NULL,
+    SlidingRefreshTokenLifetime int NOT NULL,
+    UpdateAccessTokenClaimsOnRefresh bool NOT NULL
+);
+
+CREATE TABLE IdentityResources (
+    Id SERIAL primary key,
+    Description varchar(1000) NULL,
+    DisplayName varchar(200) NULL,
+    Emphasize bool NOT NULL,
+    Enabled bool NOT NULL,
+    Name varchar(200) NOT NULL,
+    Required bool NOT NULL,
+    ShowInDiscoveryDocument bool NOT NULL
+);
+
+CREATE TABLE ApiClaims (
+    Id SERIAL primary key,
+    ApiResourceId int NOT NULL,
+    Type varchar(200) NOT NULL
+);
+
+CREATE TABLE ApiScopes (
+    Id SERIAL primary key,
+    ApiResourceId int NOT NULL,
+    Description varchar(1000) NULL,
+    DisplayName varchar(200) NULL,
+    Emphasize bool NOT NULL,
+    Name varchar(200) NOT NULL,
+    Required bool NOT NULL,
+    ShowInDiscoveryDocument bool NOT NULL
+);
+
+CREATE TABLE ApiSecrets (
+    Id SERIAL primary key,
+    ApiResourceId int NOT NULL,
+    Description varchar(1000) NULL,
+    Expiration timestamp NULL,
+    Type varchar(250) NULL,
+    Value varchar(2000) NULL
+);
+
+CREATE TABLE ClientClaims (
+    Id SERIAL primary key,
+    ClientId int NOT NULL,
+    Type varchar(250) NOT NULL,
+    Value varchar(250) NOT NULL
+);
+
+
+CREATE TABLE ClientCorsOrigins (
+    Id SERIAL primary key,
+    ClientId int NOT NULL,
+    Origin varchar(150) NOT NULL
+);
+
+
+
+CREATE TABLE ClientGrantTypes (
+    Id SERIAL primary key,
+    ClientId int NOT NULL,
+    GrantType varchar(250) NOT NULL
+);
+
+
+
+CREATE TABLE ClientIdPRestrictions (
+    Id SERIAL primary key,
+    ClientId int NOT NULL,
+    Provider varchar(200) NOT NULL
+);
+
+
+CREATE TABLE ClientPostLogoutRedirectUris (
+    Id SERIAL primary key,
+    ClientId int NOT NULL,
+    PostLogoutRedirectUri varchar(2000) NOT NULL
+);
+
+
+
+CREATE TABLE ClientProperties (
+    Id SERIAL primary key,
+    ClientId int NOT NULL,
+    Key varchar(250) NOT NULL,
+    Value varchar(2000) NOT NULL
+);
+
+
+
+CREATE TABLE ClientRedirectUris (
+    Id SERIAL primary key,
+    ClientId int NOT NULL,
+    RedirectUri varchar(2000) NOT NULL
+);
+
+
+
+CREATE TABLE ClientScopes (
+    Id SERIAL primary key,
+    ClientId int NOT NULL,
+    Scope varchar(200) NOT NULL
+);
+
+
+
+CREATE TABLE ClientSecrets (
+    Id SERIAL primary key,
+    ClientId int NOT NULL,
+    Description varchar(2000) NULL,
+    Expiration timestamp NULL,
+    Type varchar(250) NULL,
+    Value varchar(2000) NOT NULL
+);
+
+
+
+CREATE TABLE IdentityClaims (
+    Id SERIAL primary key,
+    IdentityResourceId int NOT NULL,
+    Type varchar(200) NOT NULL
+);
+
+
+
+CREATE TABLE ApiScopeClaims (
+    Id SERIAL primary key,
+    ApiScopeId int NOT NULL,
+    Type varchar(200) NOT NULL
+);
+

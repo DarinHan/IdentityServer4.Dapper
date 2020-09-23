@@ -9,9 +9,9 @@ namespace IdentityServer4.Dapper.Interfaces
     {
         ApiResource FindApiResource(string name);
 
-        IEnumerable<ApiResource> FindApiResourcesByScope(IEnumerable<string> scopeNames);
+        IList<ApiResource> FindApiResourcesByScope(IList<string> scopeNames);
 
-        IEnumerable<ApiResource> FindApiResourcesAll();
+        IList<ApiResource> FindApiResourcesAll();
 
         void Add(ApiResource apiResource);
         /// <summary>
@@ -37,7 +37,7 @@ namespace IdentityServer4.Dapper.Interfaces
 
         void Remove(string name);
 
-        IEnumerable<ApiResource> Search(string keywords, int pageIndex, int pageSize, out int totalCount);
+        IList<ApiResource> Search(string keywords, int pageIndex, int pageSize, out int totalCount);
 
     }
 }

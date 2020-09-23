@@ -19,6 +19,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
         private readonly ILogger<DefaultApiResourceProvider> _logger;
         private string left;
         private string right;
+        private string inArray;
 
         private readonly IDistributedCache _cache;
         private static volatile object locker = new object();
@@ -29,6 +30,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             this._logger = logger;
             left = _options.ColumnProtect["left"];
             right = _options.ColumnProtect["right"];
+            inArray = _options.GetInArray;
             _cache = cache;
         }
 
@@ -111,7 +113,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             }
         }
 
-        public IEnumerable<ApiResource> FindApiResourcesAll()
+        public IList<ApiResource> FindApiResourcesAll()
         {
             using (var connection = _options.DbProviderFactory.CreateConnection())
             {
@@ -147,7 +149,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                     }
                 }
 
-                return apilist.Select(c => c.ToModel());
+                return apilist.Select(c => c.ToModel()).ToList();
             }
         }
         #endregion
@@ -259,7 +261,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
         #endregion
 
         #region Search
-        public IEnumerable<ApiResource> Search(string keywords, int pageIndex, int pageSize, out int totalCount)
+        public IList<ApiResource> Search(string keywords, int pageIndex, int pageSize, out int totalCount)
         {
             using (var connection = _options.DbProviderFactory.CreateConnection())
             {
@@ -279,7 +281,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 var apis = connection.Query<Entities.ApiResource>(_options.GetPageQuerySQL("select * from ApiResources where Name like @keywords or DisplayName like @keywords or Description like @keywords", pageIndex, pageSize, totalCount, "", pairs), pairs, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                 if (apis != null)
                 {
-                    return apis.Select(c => c.ToModel());
+                    return apis.Select(c => c.ToModel()).ToList();
                 }
                 return null;
             }
@@ -330,7 +332,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
 
         #region 子属性
         #region ApiScope
-        public IEnumerable<Entities.ApiScope> GetScopesByApiResourceId(int apiresourceid)
+        public IList<Entities.ApiScope> GetScopesByApiResourceId(int apiresourceid)
         {
             using (var con = _options.DbProviderFactory.CreateConnection())
             {
@@ -339,9 +341,9 @@ namespace IdentityServer4.Dapper.DefaultProviders
             }
         }
 
-        public IEnumerable<Entities.ApiScope> GetScopesByApiResourceId(int apiresourceid, IDbConnection con, IDbTransaction t)
+        public IList<Entities.ApiScope> GetScopesByApiResourceId(int apiresourceid, IDbConnection con, IDbTransaction t)
         {
-            var scopes = con.Query<Entities.ApiScope>("select * from ApiScopes where ApiResourceId = @ApiResourceId", new { ApiResourceId = apiresourceid }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+            var scopes = con.Query<Entities.ApiScope>("select * from ApiScopes where ApiResourceId = @ApiResourceId", new { ApiResourceId = apiresourceid }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t).ToList();
             if (scopes != null && scopes.Count() > 0)
             {
                 var scopeclaims = con.Query<Entities.ApiScopeClaim>("select ApiScopeClaims.* from ApiScopes inner join ApiScopeClaims on ApiScopes.id = ApiScopeClaims.ApiScopeId where ApiResourceId = @ApiResourceId", new { ApiResourceId = apiresourceid }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
@@ -356,7 +358,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             return scopes;
         }
 
-        public IEnumerable<ApiResource> FindApiResourcesByScope(IEnumerable<string> scopeNames)
+        public IList<ApiResource> FindApiResourcesByScope(IList<string> scopeNames)
         {
             if (scopeNames == null || scopeNames.Count() == 0)
             {
@@ -365,7 +367,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
 
             var names = scopeNames.ToArray();
             var lstall = FindApiResourcesAll();
-            return lstall.Where(c => c.Scopes.Where(s => names.Contains(s.Name)).Any()).AsEnumerable();
+            return lstall.Where(c => c.Scopes.Where(s => names.Contains(s.Name)).Any()).ToList();
         }
 
         public void UpdateScopesByApiResourceId(ApiResource apiResource)
@@ -395,7 +397,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 }
             }
         }
-        private void InsertApiScopeByApiResourceId(IEnumerable<Entities.ApiScope> apiScopes, int apiResourceId, IDbConnection con, IDbTransaction t)
+        private void InsertApiScopeByApiResourceId(IList<Entities.ApiScope> apiScopes, int apiResourceId, IDbConnection con, IDbTransaction t)
         {
             if (apiScopes.IsEmpty())
             {
@@ -440,20 +442,25 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 ApiResourceId = apiResourceId
             }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
         }
-        private void RemoveApiScopes(IEnumerable<Entities.ApiScope> apiScopes, IDbConnection con, IDbTransaction t)
+        private void RemoveApiScopes(IList<Entities.ApiScope> apiScopes, IDbConnection con, IDbTransaction t)
         {
-            con.Execute($"delete from ApiScopeClaims where ApiScopeId in (@ApiScopeIds);", new
+            if ( apiScopes.IsEmpty() )
             {
-                ApiScopeIds = apiScopes.Select(c => c.Id)
+                return;
+            }
+
+            con.Execute($"delete from ApiScopeClaims where ApiScopeId {inArray}(@ApiScopeIds);", new
+            {
+                ApiScopeIds = apiScopes.Select(c => c.Id).ToList()
             }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
 
-            con.Execute($"delete from ApiScopes where id in (@ApiResourceIds);", new
+            con.Execute($"delete from ApiScopes where id {inArray}(@ApiResourceIds);", new
             {
-                ApiResourceIds = apiScopes.Select(c => c.Id)
+                ApiResourceIds = apiScopes.Select(c => c.Id).ToList()
             }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
         }
 
-        private void UpdateScopesByApiResourceId(IEnumerable<Entities.ApiScope> apiScopes, int apiId, IDbConnection con, IDbTransaction t)
+        private void UpdateScopesByApiResourceId(IList<Entities.ApiScope> apiScopes, int apiId, IDbConnection con, IDbTransaction t)
         {
             if (apiScopes.IsEmpty())
             {
@@ -467,13 +474,13 @@ namespace IdentityServer4.Dapper.DefaultProviders
             }
 
             //find deleted
-            var deleteds = dbitems.Where(c => !apiScopes.ToList().Exists(d => d.Name == c.Name));
+            var deleteds = dbitems.Where(c => !apiScopes.ToList().Exists(d => d.Name == c.Name)).ToList();
             RemoveApiScopes(deleteds, con, t);
             //find new 
-            var addeds = apiScopes?.Where(c => !dbitems.ToList().Exists(d => d.Name == c.Name));
+            var addeds = apiScopes?.Where(c => !dbitems.ToList().Exists(d => d.Name == c.Name)).ToList();
             InsertApiScopeByApiResourceId(addeds, apiId, con, t);
             //find updated
-            var updateds = dbitems.Where(c => apiScopes.ToList().Exists(d => d.Name == c.Name));
+            var updateds = dbitems.Where(c => apiScopes.ToList().Exists(d => d.Name == c.Name)).ToList();
             if (updateds.IsEmpty())
             {
                 return;
@@ -527,7 +534,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
         #endregion
 
         #region Claim
-        public IEnumerable<Entities.ApiResourceClaim> GetClaimsByAPIID(int apiresourceid)
+        public IList<Entities.ApiResourceClaim> GetClaimsByAPIID(int apiresourceid)
         {
             using (var con = _options.DbProviderFactory.CreateConnection())
             {
@@ -536,9 +543,9 @@ namespace IdentityServer4.Dapper.DefaultProviders
             }
         }
 
-        public IEnumerable<Entities.ApiResourceClaim> GetClaimsByAPIID(int apiresourceid, IDbConnection con, IDbTransaction t)
+        public IList<Entities.ApiResourceClaim> GetClaimsByAPIID(int apiresourceid, IDbConnection con, IDbTransaction t)
         {
-            return con.Query<Entities.ApiResourceClaim>("select * from ApiClaims where ApiResourceId = @ApiResourceId", new { ApiResourceId = apiresourceid }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+            return con.Query<Entities.ApiResourceClaim>("select * from ApiClaims where ApiResourceId = @ApiResourceId", new { ApiResourceId = apiresourceid }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t).ToList();
         }
 
         private void InsertApiResourceClaim(Entities.ApiResourceClaim item, int apiresourceid, IDbConnection con, IDbTransaction t)
@@ -554,7 +561,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             }
         }
 
-        public void UpdateClaimsByApiResourceId(IEnumerable<Entities.ApiResourceClaim> apiResourceClaims, int apiresourceid, IDbConnection con, IDbTransaction t)
+        public void UpdateClaimsByApiResourceId(IList<Entities.ApiResourceClaim> apiResourceClaims, int apiresourceid, IDbConnection con, IDbTransaction t)
         {
             var dbitems = GetClaimsByAPIID(apiresourceid, con, t);
             if (dbitems != null)
@@ -576,7 +583,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             {
                 return;
             }
-            foreach (var item in apiResourceClaims.Where(c => !dbitems.ToList().Exists(d => d.Type == c.Type)))
+            foreach (var item in apiResourceClaims.Where(c => !dbitems.ToList().Exists(d => d.Type == c.Type)).ToList())
             {
                 InsertApiResourceClaim(item, apiresourceid, con, t);
             }
@@ -612,7 +619,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
         #endregion
 
         #region ApiSecrets
-        public IEnumerable<Entities.ApiSecret> GetSecretByApiResourceId(int apiresourceid)
+        public IList<Entities.ApiSecret> GetSecretByApiResourceId(int apiresourceid)
         {
             using (var con = _options.DbProviderFactory.CreateConnection())
             {
@@ -622,9 +629,9 @@ namespace IdentityServer4.Dapper.DefaultProviders
             }
         }
 
-        private IEnumerable<Entities.ApiSecret> GetSecretByApiResourceId(int apiresourceid, IDbConnection con, IDbTransaction t)
+        private IList<Entities.ApiSecret> GetSecretByApiResourceId(int apiresourceid, IDbConnection con, IDbTransaction t)
         {
-            return con.Query<Entities.ApiSecret>("select * from apisecrets where ApiResourceId = @ApiResourceId", new { ApiResourceId = apiresourceid }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t);
+            return con.Query<Entities.ApiSecret>("select * from ApiSecrets where ApiResourceId = @ApiResourceId", new { ApiResourceId = apiresourceid }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text, transaction: t).ToList();
         }
 
 
@@ -645,7 +652,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
         }
 
 
-        public void UpdateApiSecretsByApiResourceId(IEnumerable<Entities.ApiSecret> apiSecrets, int apiresourceid, IDbConnection con, IDbTransaction t)
+        public void UpdateApiSecretsByApiResourceId(IList<Entities.ApiSecret> apiSecrets, int apiresourceid, IDbConnection con, IDbTransaction t)
         {
             var dbitems = GetSecretByApiResourceId(apiresourceid);
             if (dbitems != null)
@@ -679,7 +686,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             }
             if (!apiSecrets.IsEmpty())
             {
-                foreach (var item in apiSecrets.Where(c => !dbitems.ToList().Exists(d => d.Type == c.Type && d.Value == c.Value)))
+                foreach (var item in apiSecrets.Where(c => !dbitems.ToList().Exists(d => d.Type == c.Type && d.Value == c.Value)).ToList())
                 {
                     InsertApiSecretsByApiResourceId(item, apiresourceid, con, t);
                 }

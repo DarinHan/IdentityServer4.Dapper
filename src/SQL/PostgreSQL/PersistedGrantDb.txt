@@ -1,0 +1,11 @@
+﻿
+CREATE TABLE PersistedGrants (
+    Key varchar(200) NOT NULL,
+    ClientId varchar(200) NOT NULL,
+    CreationTime timestamp NOT NULL,
+    Data varchar(8000) NOT NULL,
+    Expiration timestamp NULL,
+    SubjectId varchar(200) NULL,
+    Type varchar(50) NOT NULL,
+    CONSTRAINT PK_PersistedGrants PRIMARY KEY (Key)
+);
