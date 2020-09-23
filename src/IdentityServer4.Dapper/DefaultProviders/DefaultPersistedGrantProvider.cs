@@ -65,7 +65,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
             {
 
                 connection.ConnectionString = _options.ConnectionString;
-                persistedGrant = connection.QueryFirstOrDefault<Entities.PersistedGrant>($"select * from persistedgrants where {left}Key{right} = @Key", new { Key = key }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                persistedGrant = connection.QueryFirstOrDefault<Entities.PersistedGrant>($"select * from PersistedGrants where {left}Key{right} = @Key", new { Key = key }, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
             }
             return persistedGrant?.ToModel();
         }
@@ -263,7 +263,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                 DynamicParameters pairs = new DynamicParameters();
                 pairs.Add("keywords", "%" + keywords + "%");
 
-                var countsql = $"select count(1) from persistedgrants where {left}Key{right} like @keywords or ClientId like @keywords or SubjectId like @keywords OR {left}Type{right} like @keywords";
+                var countsql = $"select count(1) from PersistedGrants where {left}Key{right} like @keywords or ClientId like @keywords or SubjectId like @keywords OR {left}Type{right} like @keywords";
                 totalCount = connection.ExecuteScalar<int>(countsql, pairs, commandType: CommandType.Text);
 
                 if (totalCount == 0)
@@ -271,7 +271,7 @@ namespace IdentityServer4.Dapper.DefaultProviders
                     return null;
                 }
 
-                var clients = connection.Query<Entities.PersistedGrant>(_options.GetPageQuerySQL($"select * from persistedgrants where {left}Key{right} like @keywords or ClientId like @keywords or SubjectId like @keywords OR {left}Type{right} like @keywords", pageIndex, pageSize, totalCount, $"order by {left}Key{right}", pairs), pairs, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
+                var clients = connection.Query<Entities.PersistedGrant>(_options.GetPageQuerySQL($"select * from PersistedGrants where {left}Key{right} like @keywords or ClientId like @keywords or SubjectId like @keywords OR {left}Type{right} like @keywords", pageIndex, pageSize, totalCount, $"order by {left}Key{right}", pairs), pairs, commandTimeout: _options.CommandTimeOut, commandType: CommandType.Text);
                 if (clients != null)
                 {
                     return clients.Select(c => c.ToModel());

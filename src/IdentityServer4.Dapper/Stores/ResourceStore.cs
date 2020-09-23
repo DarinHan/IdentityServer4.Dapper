@@ -43,7 +43,7 @@ namespace IdentityServer4.Dapper.Stores
 
         public Task<IEnumerable<ApiResource>> FindApiResourcesByScopeAsync(IEnumerable<string> scopeNames)
         {
-            var models = _apiResource.FindApiResourcesByScope(scopeNames).AsEnumerable();
+            var models = _apiResource.FindApiResourcesByScope(scopeNames.ToList()).AsEnumerable();
             _logger.LogDebug("Found {scopes} API scopes in database", models.SelectMany(x => x.Scopes).Select(x => x.Name));
             return Task.FromResult(models);
         }

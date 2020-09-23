@@ -25,6 +25,8 @@ namespace IdentityServer4.Dapper.Extensions.MSSql
             options.ColumnProtect = new System.Collections.Generic.Dictionary<string, string>();
             options.ColumnProtect.Add("left", "[");
             options.ColumnProtect.Add("right", "]");
+            options.GetInArray = " in ";
+
             options.GetPageQuerySQL = (input, pageindex, pagesize, totalcount, orderby, pairs) =>
             {
                 int pagestart = 0;

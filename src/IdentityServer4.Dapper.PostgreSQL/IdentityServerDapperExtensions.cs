@@ -1,15 +1,14 @@
 ﻿using IdentityServer4.Dapper.Options;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using MySql.Data;
-using MySql.Data.MySqlClient;
+using Npgsql;
 using System.Linq;
 
-namespace IdentityServer4.Dapper.Extensions.MySql
+namespace IdentityServer4.Dapper.Extensions.PostgreSQL
 {
     public static class IdentityServerDapperDBExtensions
     {
-        public static IIdentityServerBuilder AddMySQLProvider(this IIdentityServerBuilder builder, Action<DBProviderOptions> dbProviderOptionsAction = null)
+        public static IIdentityServerBuilder AddPostgreSQLProvider(this IIdentityServerBuilder builder, Action<DBProviderOptions> dbProviderOptionsAction = null)
         {
             var options = GetDefaultOptions();
             dbProviderOptionsAction?.Invoke(options);
@@ -21,14 +20,14 @@ namespace IdentityServer4.Dapper.Extensions.MySql
         {
             //config mysql
             var options = new DBProviderOptions();
-            options.DbProviderFactory = new MySqlClientFactory();
+            options.DbProviderFactory = NpgsqlFactory.Instance;
             //get last insert id for insert actions
-            options.GetLastInsertID = "select last_insert_id();";
-            //config the ColumnName protect string, mysql using "`"
+            options.GetLastInsertID = "select LASTVAL();";
+            //config the ColumnName protect string, postgresql using ""
             options.ColumnProtect = new System.Collections.Generic.Dictionary<string, string>();
-            options.ColumnProtect.Add("left", "`");
-            options.ColumnProtect.Add("right", "`");
-            options.GetInArray = " in ";
+            options.ColumnProtect.Add("left", "");
+            options.ColumnProtect.Add("right", "");
+            options.GetInArray = " = ANY ";
             //add singgleton
             options.GetPageQuerySQL = (input, pageindex, pagesize, totalcount, orderby, pairs) =>
             {
@@ -41,7 +40,7 @@ namespace IdentityServer4.Dapper.Extensions.MySql
                     }
                     pairs.Add("start", (pageindex - 1) * pagesize);
                     pairs.Add("size", pagesize);
-                    limitsql = "limit @start,@size";
+                    limitsql = "limit @size offset @start";
                 }
 
                 if (input.IndexOf("order by", StringComparison.CurrentCultureIgnoreCase) >= 0)

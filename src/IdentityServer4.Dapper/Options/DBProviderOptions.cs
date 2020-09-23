@@ -45,5 +45,12 @@ namespace IdentityServer4.Dapper.Options
         /// string:paged sql returned
         /// </summary>
         public Func<string, int, int, int, string, DynamicParameters, string> GetPageQuerySQL { get; set; }
+
+
+        /// <summary>
+        /// Get SQL For in array.
+        /// </summary>
+        public string GetInArray { get; set; } 
+
     }
 }

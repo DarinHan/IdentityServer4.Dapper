@@ -1,0 +1,18 @@
+2020-09-23 16:07:10.0701 Info Message Template Auto Format enabled
+2020-09-23 16:07:10.0917 Info Loading assembly: NLog.Web.AspNetCore
+2020-09-23 16:07:10.1533 Info Adding target File Target[allfile]
+2020-09-23 16:07:10.1686 Info Adding target File Target[ownFile-web]
+2020-09-23 16:07:10.1741 Info Configured from an XML element in /Users/henry/Develop/IdentityServer4.Dapper/src/Host/IdentityServer4.Dapper.Host/bin/Debug/netcoreapp3.1/nlog.config...
+2020-09-23 16:07:10.1870 Info Found 47 configuration items
+2020-09-23 16:07:49.6776 Info Message Template Auto Format enabled
+2020-09-23 16:07:49.6988 Info Loading assembly: NLog.Web.AspNetCore
+2020-09-23 16:07:49.7595 Info Adding target File Target[allfile]
+2020-09-23 16:07:49.7691 Info Adding target File Target[ownFile-web]
+2020-09-23 16:07:49.7747 Info Configured from an XML element in /Users/henry/Develop/IdentityServer4.Dapper/src/Host/IdentityServer4.Dapper.Host/bin/Debug/netcoreapp3.1/nlog.config...
+2020-09-23 16:07:49.7860 Info Found 47 configuration items
+2020-09-23 16:15:27.0388 Info Message Template Auto Format enabled
+2020-09-23 16:15:27.0683 Info Loading assembly: NLog.Web.AspNetCore
+2020-09-23 16:15:27.1527 Info Adding target File Target[allfile]
+2020-09-23 16:15:27.1661 Info Adding target File Target[ownFile-web]
+2020-09-23 16:15:27.1728 Info Configured from an XML element in /Users/henry/Develop/IdentityServer4.Dapper/src/Host/IdentityServer4.Dapper.Host/bin/Debug/netcoreapp3.1/nlog.config...
+2020-09-23 16:15:27.1870 Info Found 47 configuration items
