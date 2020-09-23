@@ -21,9 +21,9 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/src/Host/IdentityServer.Dapper.Test/bin/Debug/netcoreapp2.1/IdentityServer.Dapper.Test.dll",
+            "program": "${workspaceFolder}/src/Host/IdentityServer4.Dapper.Host/bin/Debug/netcoreapp3.1/IdentityServer4.Dapper.Host.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/src/Host/IdentityServer.Dapper.Test",
+            "cwd": "${workspaceFolder}/src/Host/IdentityServer4.Dapper.Host",
             "stopAtEntry": false,
             "internalConsoleOptions": "openOnSessionStart",
             "launchBrowser": {

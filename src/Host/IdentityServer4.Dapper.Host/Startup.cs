@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.SpaServices;
+using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using IdentityServer4.Dapper.Extensions.MySql;
+using IdentityServer4.Dapper.Extensions.PostgreSQL;
 using IdentityServer4.Dapper.Extensions;
 
 namespace IdentityServer4.Dapper.Host
@@ -33,9 +35,10 @@ namespace IdentityServer4.Dapper.Host
             });
             services.AddIdentityServer()
                 .AddDeveloperSigningCredential()
-                .AddMySQLProvider(option =>
+                .AddPostgreSQLProvider(option =>
                 {
-                    option.ConnectionString = "server=.;uid=darinhan;pwd=darinhan;database=identityserver4;SslMode=None;";
+                    //option.ConnectionString = "server=.;uid=darinhan;pwd=darinhan;database=identityserver4;SslMode=None;";
+                    option.ConnectionString = "Host=localhost;Port=32676;Username=postgresadmin;Password=admin123;Database=postgresdb;Minimum Pool Size=5;Search Path=identityserver";
                 })
                 .AddConfigurationStore()
                 .AddOperationalStore(option =>
@@ -44,7 +47,9 @@ namespace IdentityServer4.Dapper.Host
                     option.TokenCleanupInterval = 10;
                 });
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            services.AddMvc(options => {
+                options.EnableEndpointRouting = false;
+            });
 
             // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration =>
@@ -54,9 +59,9 @@ namespace IdentityServer4.Dapper.Host
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            if (env.IsDevelopment())
+            if (env.EnvironmentName.Equals("Development"))
             {
                 app.UseDeveloperExceptionPage();
             }
@@ -81,10 +86,10 @@ namespace IdentityServer4.Dapper.Host
             {
                 spa.Options.SourcePath = "ClientApp";
 
-                spa.UseProxyToSpaDevelopmentServer("http://localhost:7012");
+                //spa.UseProxyToSpaDevelopmentServer("http://localhost:7012");
                 //if (env.IsDevelopment())
                 //{
-                //    spa.UseReactDevelopmentServer(npmScript: "start");
+                spa.UseReactDevelopmentServer(npmScript: "start");
                 //}
             });
         }
